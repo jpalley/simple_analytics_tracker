@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test HTML Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+    <script src="/simple_analytics.js"></script>
+    
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the Test Page</h1>
+        <p>This is a basic HTML file with some test content.</p>
+        <ul>
+            <li>Item 1</li>
+            <li>Item 2</li>
+            <li>Item 3</li>
+        </ul>
+        <p>Feel free to modify this content as needed for your testing purposes.</p>
+    </div>
+<script>
+      VisitorLogger.init({
+        serverUrl: 'http://localhost:3000/',
+        enableScrollDepth: true,
+        enableEventLogging: true,
+        customParameters: ['rfid']
+      });
+      VisitorLogger.identify({
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+      });
+    </script>
+</body>
+</html>
+
