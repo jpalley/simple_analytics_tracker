@@ -68,6 +68,13 @@ class TrackingController < ApplicationController
         person.latest_params[key] = value
       end
 
+      cloudflare_headers.each do |header|
+        if request.headers[header]
+          person.latest_params[header.gsub("-", "_")] = request.headers[header]
+          person.initial_params[header.gsub("-", "_")] ||= request.headers[header]
+        end
+      end
+
 
       if !person.save
         render json: { status: "error", errors: person.errors.full_messages }, status: :unprocessable_entity
