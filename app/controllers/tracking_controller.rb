@@ -41,7 +41,7 @@ class TrackingController < ApplicationController
     captured_headers = [
       "cf-ipcity", "cf-ipcountry", "cf-ipcontinent", "cf-iplongitude", "cf-iplatitude",
       "cf-region", "cf-region-code", "cf-metro-code", "cf-postal-code", "cf-timezone", "cf-connecting-ip",
-      "referrer", :browser_platform_name, :browser_mobile, :browser_name
+      "referrer", :browser_platform_name, :browser_mobile, :browser_name, :js_user_agent
     ]
 
     captured_headers.each do |header|
@@ -61,11 +61,11 @@ class TrackingController < ApplicationController
       person.initial_params ||= {}
       person.latest_params ||= {}
 
-      event_params[:event_data][:params]&.each do |key, value|
+      event_params[:event_data][:selected_params]&.each do |key, value|
         person.initial_params[key] ||= value
       end
 
-      event_params[:event_data][:params]&.each do |key, value|
+      event_params[:event_data][:selected_params]&.each do |key, value|
         person.latest_params[key] = value
       end
 
