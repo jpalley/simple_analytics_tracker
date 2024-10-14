@@ -134,8 +134,9 @@
               document.body.scrollHeight) *
               100
           );
-          if (scrollDepth > maxScrollDepth) {
-            maxScrollDepth = scrollDepth;
+          // Only track if the new scroll depth is at least 10% more than the previous max
+          if (scrollDepth >= maxScrollDepth + 10) {
+            maxScrollDepth = Math.floor(scrollDepth / 10) * 10; // Round down to nearest 10%
             var data = {
               uuid: uuid,
               event_type: "scroll",
