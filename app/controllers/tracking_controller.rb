@@ -40,7 +40,7 @@ class TrackingController < ApplicationController
 
     cloudflare_headers = [
       "cf-ipcity", "cf-ipcountry", "cf-ipcontinent", "cf-iplongitude", "cf-iplatitude",
-      "cf-region", "cf-region-code", "cf-metro-code", "cf-postal-code", "cf-timezone"
+      "cf-region", "cf-region-code", "cf-metro-code", "cf-postal-code", "cf-timezone", "cf-connecting-ip"
     ]
 
     cloudflare_headers.each do |header|
