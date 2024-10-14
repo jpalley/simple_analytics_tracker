@@ -38,12 +38,13 @@ class TrackingController < ApplicationController
     event_params[:event_data][:browser_platform_version] = browser.platform.version
     event_params[:event_data][:browser_platform_name] = browser.platform.name
 
-    cloudflare_headers = [
+    captured_headers = [
       "cf-ipcity", "cf-ipcountry", "cf-ipcontinent", "cf-iplongitude", "cf-iplatitude",
-      "cf-region", "cf-region-code", "cf-metro-code", "cf-postal-code", "cf-timezone", "cf-connecting-ip"
+      "cf-region", "cf-region-code", "cf-metro-code", "cf-postal-code", "cf-timezone", "cf-connecting-ip",
+      "referrer", :browser_platform_name, :browser_mobile, :browser_name
     ]
 
-    cloudflare_headers.each do |header|
+    captured_headers.each do |header|
       if request.headers[header]
         event_params[:event_data][header.gsub("-", "_")] = request.headers[header]
       end
@@ -68,7 +69,7 @@ class TrackingController < ApplicationController
         person.latest_params[key] = value
       end
 
-      cloudflare_headers.each do |header|
+      captured_headers.each do |header|
         if request.headers[header]
           person.latest_params[header.gsub("-", "_")] = request.headers[header]
           person.initial_params[header.gsub("-", "_")] ||= request.headers[header]

@@ -21,7 +21,7 @@ class BigquerySyncJob < ApplicationJob
     bulk_sync_persons(bigquery, dataset)
 
     # Sync Events
-    # bulk_sync_events(bigquery, dataset)
+    bulk_sync_events(bigquery, dataset)
   end
 
   private
@@ -91,10 +91,10 @@ class BigquerySyncJob < ApplicationJob
       merge_persons_table(bigquery, dataset, temp_table, persons_table, person_schema)
 
       # Delete the temp table
-      # temp_table.delete
+      temp_table.delete
 
       # Update synced and synced_at
-      # unsynced_persons.update_all(synced: true, synced_at: Time.current)
+      unsynced_persons.update_all(synced: true, synced_at: Time.current)
     end
   end
 
