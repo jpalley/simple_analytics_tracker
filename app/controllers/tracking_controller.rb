@@ -50,6 +50,10 @@ class TrackingController < ApplicationController
       end
     end
 
+    # Remove keys longer than 15 characters from all_params
+    if event_params[:event_data][:all_params].is_a?(Hash)
+      event_params[:event_data][:all_params].delete_if { |key, _| key.to_s.length > 15 }
+    end
 
     event = Event.new(event_params)
     event.timestamp ||= Time.current # Ensure timestamp is set if not provided

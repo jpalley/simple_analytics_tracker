@@ -275,6 +275,12 @@ class BigquerySyncJob < ApplicationJob
         end
       end
     else
+      # Check length only for the actual field being added
+      if field_name.length > 15
+        Rails.logger.warn "Skipping field '#{field_name}' as it exceeds 15 characters"
+        return
+      end
+
       # Add field at current level
       if field_info[:type] == "RECORD"
         schema.record field_name, mode: field_info[:mode] do |nested_schema|
