@@ -16,7 +16,10 @@ proxy:
     - analytics.clever-builds.com
     - analytics.clevertinyhomes.com
 
-
+env:
+  clear:
+    GOOGLE_CLOUD_PROJECT: clever-builds-production
+    BIGQUERY_DATASET: cdp
 
     # Set number of processes dedicated to Solid Queue (default: 1)
     # JOB_CONCURRENCY: 3

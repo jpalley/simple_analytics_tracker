@@ -16,6 +16,11 @@ proxy:
     - analytics.qrcodesunlimited.com
 
 
+env:
+  clear:
+    GOOGLE_CLOUD_PROJECT: brainpage-production
+    BIGQUERY_DATASET: qrcode_cdp
+
 
     # Set number of processes dedicated to Solid Queue (default: 1)
     # JOB_CONCURRENCY: 3
