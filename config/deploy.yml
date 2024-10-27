@@ -3,11 +3,7 @@ service: simple_analytics
 
 # Name of the container image.
 image: edamametech/simple_analytics_tracker
-servers:
-  web:
-    - 209.38.6.16
-volumes:
-  - /mnt/volume_sfo3_01/simple_analytics:/rails/storage
+
 # Deploy to these servers.
 
   # job:
@@ -19,9 +15,7 @@ volumes:
 # Set ssl: false if using something like Cloudflare to terminate SSL (but keep host!).
 proxy:
   ssl: true
-  hosts:
-    - analytics.clever-builds.com
-    - analytics.clevertinyhomes.com
+
 
 
 # Credentials for your image host.
