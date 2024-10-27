@@ -188,6 +188,8 @@ class BigquerySyncJob < ApplicationJob
         field_name = current_field
       end
 
+      field_name = sanitize_field_name(field_name)
+
       if value.is_a?(Hash)
         nested_data, nested_schema = flatten_attributes(value, key)
         data.merge!(nested_data)
@@ -203,6 +205,17 @@ class BigquerySyncJob < ApplicationJob
     end
 
     [ data, schema ]
+  end
+
+  # Helper method to sanitize field names
+  def sanitize_field_name(field_name)
+    # Replace any invalid characters with underscores
+    sanitized = field_name.gsub(/[^a-zA-Z0-9_]/, "_")
+
+    # Ensure the field name starts with a letter or underscore
+    sanitized = "A#{sanitized}" unless sanitized.match?(/^[a-zA-Z_]/)
+
+    sanitized
   end
 
   def insert_data_into_bigquery(table, data)
