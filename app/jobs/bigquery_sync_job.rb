@@ -289,8 +289,9 @@ class BigquerySyncJob < ApplicationJob
       end
     else
       # Check length only for the actual field being added
-      if field_name.length > 15
-        Rails.logger.warn "Skipping field '#{field_name}' as it exceeds 15 characters"
+      if field_name.length > 25
+        Rails.logger.warn "Skipping field '#{field_name.gsub("initial_params_", "").gsub("latest_params_", "").gsub("all_params_", "").gsub("browser_", "")}' as it exceeds 25 characters"
+
         return
       end
 

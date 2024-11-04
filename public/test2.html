@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test HTML Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    </style>
+    <script src="/simple_analytics.js"></script>
+    
+</head>
+<body>
+    <div class="container"></div>
+        <h1>Welcome to the Test Page</h1>
+        <p>This is a basic HTML file with some test content. It has been expanded to require scrolling.</p>
+        
+        <div class="section">
+            <h2>Section 1: List Example</h2>
+            <ul>
+                <li>Item 1</li>
+                <li>Item 2</li>
+                <li>Item 3</li>
+                <li>Item 4</li>
+                <li>Item 5</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Section 2: Lorem Ipsum</h2>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nunc id aliquam tincidunt, nisi nunc tincidunt nunc, nec tincidunt nunc nunc id nunc. Sed euismod, nunc id aliquam tincidunt, nisi nunc tincidunt nunc, nec tincidunt nunc nunc id nunc.</p>
+            <p>Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.</p>
+        </div>
+
+        <div class="section">
+            <h2>Section 3: Image Placeholder</h2>
+            <img src="https://via.placeholder.com/600x400" alt="Placeholder Image">
+        </div>
+
+        <div class="section">
+            <h2>Section 4: More Lorem Ipsum</h2>
+            <p>Quisque volutpat condimentum velit. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nam nec ante. Sed lacinia, urna non tincidunt mattis, tortor neque adipiscing diam, a cursus ipsum ante quis turpis. Nulla facilisi. Ut fringilla. Suspendisse potenti. Nunc feugiat mi a tellus consequat imperdiet. Vestibulum sapien. Proin quam.</p>
+            <p>Etiam ultrices. Suspendisse in justo eu magna luctus suscipit. Sed lectus. Integer euismod lacus luctus magna. Quisque cursus, metus vitae pharetra auctor, sem massa mattis sem, at interdum magna augue eget diam. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Morbi lacinia molestie dui. Praesent blandit dolor.</p>
+        </div>
+
+        <div class="section">
+            <h2>Section 5: Table Example</h2>
+            <table border="1">
+                <tr>
+                    <th>Header 1</th>
+                    <th>Header 2</th>
+                    <th>Header 3</th>
+                </tr>
+                <tr>
+                    <td>Row 1, Cell 1</td>
+                    <td>Row 1, Cell 2</td>
+                    <td>Row 1, Cell 3</td>
+                </tr>
+                <tr>
+                    <td>Row 2, Cell 1</td>
+                    <td>Row 2, Cell 2</td>
+                    <td>Row 2, Cell 3</td>
+                </tr>
+                <tr>
+                    <td>Row 3, Cell 1</td>
+                    <td>Row 3, Cell 2</td>
+                    <td>Row 3, Cell 3</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Section 6: Final Thoughts</h2>
+            <p>This page has been significantly expanded to require scrolling. It now includes various elements such as headings, paragraphs, lists, images, and tables. This should provide a good test environment for scroll depth tracking and other analytics features.</p>
+        </div>
+    </div>
+    <script>
+            // Wait for the DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to initialize VisitorLogger
+            function initVisitorLogger() {
+                if (typeof VisitorLogger !== 'undefined') {
+                    VisitorLogger.init({
+                        serverUrl: 'http://localhost:3000/',
+                        enableScrollDepth: true,
+                        enableEventLogging: true,
+                        customParameters: ['rfid']
+                    });
+                } else {
+                    // If VisitorLogger is not loaded yet, wait and try again
+                    setTimeout(initVisitorLogger, 50);
+                }
+            }
+    
+            // Start the initialization process
+            initVisitorLogger();
+        });
+    </script>
+</body>
+</html>
+
