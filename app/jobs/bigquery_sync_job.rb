@@ -138,6 +138,10 @@ class BigquerySyncJob < ApplicationJob
 
         if load_job.failed?
           Rails.logger.error "Failed to load data into BigQuery: #{load_job.error}"
+          Rails.logger.error "JSON size: #{tempfile.size}; JSON rows: #{formatted_row.count}"
+          Rails.logger.error formatted_row[1..100].to_json
+          raise "Failed to load data into BigQuery"
+          return
         else
           # Update events as synced
           event_ids = events_batch.map(&:id)
@@ -292,7 +296,7 @@ class BigquerySyncJob < ApplicationJob
       end
     else
       # Check length only for the actual field being added
-      sanitized_field_name = field_name.gsub("initial_params_", "").gsub("latest_params_", "").gsub("all_params_", "").gsub("browser_", "")
+      sanitized_field_name = field_name.gsub("initial_params_", "").gsub("latest_params_", "").gsub("all_params_", "").gsub("browser_", "").gsub("selected_params_", "")
       if sanitized_field_name.length > 25
         Rails.logger.warn "Skipping field '#{sanitized_field_name}' as it exceeds 25 characters"
 
