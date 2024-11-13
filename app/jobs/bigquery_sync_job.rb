@@ -138,8 +138,6 @@ class BigquerySyncJob < ApplicationJob
 
         if load_job.failed?
           Rails.logger.error "Failed to load data into BigQuery: #{load_job.error}"
-          Rails.logger.error "JSON size: #{tempfile.size}; JSON rows: #{formatted_row.count}"
-          Rails.logger.error formatted_row[1..100].to_json
           raise "Failed to load data into BigQuery"
           return
         else
