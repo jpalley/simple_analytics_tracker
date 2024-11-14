@@ -11,8 +11,8 @@ class BigquerySyncJob < ApplicationJob
     # Initialize BigQuery client (project_id and credentials are set globally)
     bigquery = Google::Cloud::Bigquery.new(
       project: ENV["GOOGLE_CLOUD_PROJECT"],
-      # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
-      credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
+      credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+      # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
     )
 
     dataset_id = ENV["BIGQUERY_DATASET"]
