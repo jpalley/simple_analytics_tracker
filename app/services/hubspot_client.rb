@@ -15,7 +15,9 @@ class HubspotClient
     # Convert response to a hash with utk as keys for easier lookup
     result = {}
     response.parsed_response.each do |utk, contact|
-      result[utk] = contact
+      if contact["is-contact"] == true
+        result[utk] = contact
+      end
     end
     result
   end
