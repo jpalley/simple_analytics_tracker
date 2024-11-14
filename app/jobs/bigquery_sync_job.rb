@@ -11,7 +11,8 @@ class BigquerySyncJob < ApplicationJob
     # Initialize BigQuery client (project_id and credentials are set globally)
     bigquery = Google::Cloud::Bigquery.new(
       project: ENV["GOOGLE_CLOUD_PROJECT"],
-      credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+      # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+      credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
     )
 
     dataset_id = ENV["BIGQUERY_DATASET"]
@@ -66,11 +67,10 @@ class BigquerySyncJob < ApplicationJob
       update_table_schema(persons_table, person_schema)
 
       # Insert data into temp table
-      # insert_data_into_bigquery(temp_table, person_data)
 
       Tempfile.open([ "persons", ".json" ]) do |tempfile|
         person_data.each do |data_row|
-          formatted_row = format_data_for_bigquery(data_row)
+          formatted_row = data_row
           tempfile.puts formatted_row.to_json
         end
         tempfile.flush
@@ -122,11 +122,11 @@ class BigquerySyncJob < ApplicationJob
 
       # Update table schema to accommodate new fields
       update_table_schema(events_table, event_schema)
-
+      puts "event_schema: #{event_schema.inspect}"
       # Write data to temporary file
       Tempfile.open([ "events", ".json" ]) do |tempfile|
         event_data.each do |data_row|
-          formatted_row = format_data_for_bigquery(data_row)
+          formatted_row = data_row
           tempfile.puts formatted_row.to_json
         end
         tempfile.flush
@@ -197,6 +197,8 @@ class BigquerySyncJob < ApplicationJob
 
       field_name = sanitize_field_name(field_name)
 
+      next if field_name.nil?
+
       if value.is_a?(Hash)
         nested_data, nested_schema = flatten_attributes(value, key)
         data.merge!(nested_data)
@@ -221,34 +223,18 @@ class BigquerySyncJob < ApplicationJob
 
     # Ensure the field name starts with a letter or underscore
     sanitized = "A#{sanitized}" unless sanitized.match?(/^[a-zA-Z_]/)
+    sanitized_field_name = sanitized.gsub("initial_params_", "").gsub("latest_params_", "").gsub("all_params_", "").gsub("browser_", "").gsub("selected_params_", "")
+    if sanitized_field_name.length > 25
+      Rails.logger.warn "Skipping field '#{sanitized_field_name}' as it exceeds 25 characters"
+
+        return nil
+    end
+
 
     sanitized
   end
 
-  def insert_data_into_bigquery(table, data)
-    data.each_slice(500) do |batch|
-      formatted_data = batch.map { |row| format_data_for_bigquery(row) }
-      result = table.insert(formatted_data)
-      unless result.success?
-        Rails.logger.error "Failed to insert data into BigQuery table #{table.table_id}: #{result.error_rows}"
-        raise "Failed to insert data into BigQuery table #{table.table_id}: #{result.error_rows}"
-      end
-    end
-  end
 
-  def format_data_for_bigquery(data)
-    formatted = {}
-    data.each do |key, value|
-      if key.include?(".")
-        keys = key.split(".")
-        nested_hash = keys.reverse.inject(value) { |memo, k| { k => memo } }
-        formatted.deep_merge!(nested_hash) { |_k, old_val, new_val| old_val.is_a?(Hash) ? old_val.deep_merge(new_val) : new_val }
-      else
-        formatted[key] = value
-      end
-    end
-    formatted
-  end
 
   def update_table_schema(table, data_schema)
     existing_fields = collect_existing_fields(table.schema.fields)
@@ -297,13 +283,6 @@ class BigquerySyncJob < ApplicationJob
       end
     else
       # Check length only for the actual field being added
-      sanitized_field_name = field_name.gsub("initial_params_", "").gsub("latest_params_", "").gsub("all_params_", "").gsub("browser_", "").gsub("selected_params_", "")
-      if sanitized_field_name.length > 25
-        Rails.logger.warn "Skipping field '#{sanitized_field_name}' as it exceeds 25 characters"
-
-        return
-      end
-
       # Add field at current level
       if field_info[:type] == "RECORD"
         schema.record field_name, mode: field_info[:mode] do |nested_schema|
