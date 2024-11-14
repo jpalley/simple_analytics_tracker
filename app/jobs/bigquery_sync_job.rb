@@ -84,7 +84,7 @@ class BigquerySyncJob < ApplicationJob
           Rails.logger.error "Failed to load data into BigQuery: #{load_job.error}"
           Rails.logger.error "JSON size: #{tempfile.size}; JSON rows: #{formatted_row.count}"
           Rails.logger.error formatted_row[1..100].to_json
-          raise "Failed to load data into BigQuery"
+          raise "Failed to load data into BigQuery #{load_job.error}"
           return
         end
       end
@@ -138,7 +138,9 @@ class BigquerySyncJob < ApplicationJob
 
         if load_job.failed?
           Rails.logger.error "Failed to load data into BigQuery: #{load_job.error}"
-          raise "Failed to load data into BigQuery"
+          # Rails.logger.error "JSON size: #{tempfile.size}; JSON rows: #{formatted_row.count}"
+          # Rails.logger.error formatted_row[1..100].to_json
+          raise "Failed to load data into BigQuery #{load_job.error}"
           return
         else
           # Update events as synced
@@ -229,6 +231,7 @@ class BigquerySyncJob < ApplicationJob
       result = table.insert(formatted_data)
       unless result.success?
         Rails.logger.error "Failed to insert data into BigQuery table #{table.table_id}: #{result.error_rows}"
+        raise "Failed to insert data into BigQuery table #{table.table_id}: #{result.error_rows}"
       end
     end
   end
