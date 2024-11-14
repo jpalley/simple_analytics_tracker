@@ -6,7 +6,8 @@ class HubspotSyncJob < ApplicationJob
   RATE_LIMIT_DELAY = 60.0 / REQUESTS_PER_MINUTE # Seconds between requests
 
   def perform
-    Person.where(hubspot_synced_at: nil).where("updated_at < ?", 1.day.ago)
+    return if ENV["HUBSPOT_ACCESS_TOKEN"].blank?
+    Person.where("hubspot_synced_at IS NULL OR hubspot_synced_at < updated_at")
           .in_batches(of: BATCH_SIZE) do |batch|
       process_batch(batch)
       sleep RATE_LIMIT_DELAY # Wait before processing next batch
