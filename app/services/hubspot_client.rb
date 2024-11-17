@@ -9,7 +9,7 @@ class HubspotClient
         "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}"
       }
     })
-    raise "Hubspot API Error" if !response.success?
+    raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
     return {} unless response.success?
     puts "response.parsed_response: #{response.parsed_response.inspect}"
     # Convert response to a hash with utk as keys for easier lookup
