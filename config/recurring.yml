@@ -21,4 +21,4 @@ production:
     schedule: every day at 2am
   hubspot_sync:
     class: HubspotSyncJob
-    schedule: every 10 minutes
+    schedule: every 60 minutes
