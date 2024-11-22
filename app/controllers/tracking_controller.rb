@@ -74,11 +74,13 @@ class TrackingController < ApplicationController
 
       event_params[:event_data][:selected_params]&.each do |key, value|
         person.latest_params[key] = value
+        person.latest_params[key.to_s + "_ts"] = event.timestamp
       end
 
       captured_headers.each do |header|
         if request.headers[header]
           person.latest_params[header.to_s.gsub("-", "_")] = request.headers[header]
+          person.latest_params[header.to_s.gsub("-", "_") + "_ts"] = event.timestamp
           person.initial_params[header.to_s.gsub("-", "_")] ||= request.headers[header]
         end
       end
@@ -86,6 +88,7 @@ class TrackingController < ApplicationController
       additional_headers.each do |header|
         if event_params[:event_data][header]
           person.latest_params[header.to_s.gsub("-", "_")] = event_params[:event_data][header]
+          person.latest_params[header.to_s.gsub("-", "_") + "_ts"] = event.timestamp
           person.initial_params[header.to_s.gsub("-", "_")] ||= event_params[:event_data][header]
         end
       end

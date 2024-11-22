@@ -322,6 +322,7 @@ class BigquerySyncJob < ApplicationJob
   end
 
   def infer_bigquery_type(value)
+    return "TIMESTAMP" if valid_datetime?(value)
     case value
     when Integer
       "INTEGER"
@@ -338,6 +339,12 @@ class BigquerySyncJob < ApplicationJob
     end
   end
 
+  def valid_datetime?(string)
+    DateTime.parse(string)
+    true
+  rescue
+    false
+  end
   def create_persons_table(dataset)
     dataset.create_table("web_persons") do |schema|
       schema.string "uuid", mode: "REQUIRED"
