@@ -40,9 +40,9 @@ class TrackingController < ApplicationController
 
     captured_headers = [
       "cf-ipcity", "cf-ipcountry", "cf-ipcontinent", "cf-iplongitude", "cf-iplatitude",
-      "cf-region", "cf-region-code", "cf-metro-code", "cf-postal-code", "cf-timezone", "cf-connecting-ip",
-      "referrer", :browser_platform_name, :browser_mobile, :browser_name, :js_user_agent
+      "cf-region", "cf-region-code", "cf-metro-code", "cf-postal-code", "cf-timezone", "cf-connecting-ip"
     ]
+    additional_headers = [ :formatted_fbclid, :user_agent, :browser_platform_name, :browser_mobile, :browser_name, :js_user_agent, :referrer ]
 
     captured_headers.each do |header|
       if request.headers[header]
@@ -78,11 +78,17 @@ class TrackingController < ApplicationController
 
       captured_headers.each do |header|
         if request.headers[header]
-          person.latest_params[header.gsub("-", "_")] = request.headers[header]
-          person.initial_params[header.gsub("-", "_")] ||= request.headers[header]
+          person.latest_params[header.to_s.gsub("-", "_")] = request.headers[header]
+          person.initial_params[header.to_s.gsub("-", "_")] ||= request.headers[header]
         end
       end
 
+      additional_headers.each do |header|
+        if event_params[:event_data][header]
+          person.latest_params[header.to_s.gsub("-", "_")] = event_params[:event_data][header]
+          person.initial_params[header.to_s.gsub("-", "_")] ||= event_params[:event_data][header]
+        end
+      end
 
       if !person.save
         render json: { status: "error", errors: person.errors.full_messages }, status: :unprocessable_entity
