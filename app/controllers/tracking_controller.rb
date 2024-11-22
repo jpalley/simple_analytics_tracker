@@ -49,7 +49,10 @@ class TrackingController < ApplicationController
         event_params[:event_data][header.gsub("-", "_")] = request.headers[header]
       end
     end
-
+    event_params[:event_data][:user_agent] = request.user_agent
+    if event_params[:event_data][:selected_params][:fbclid].present?
+      event_params[:event_data][:formatted_fbclid] = "fb.1.#{Time.now.utc.to_i * 1000}.#{event_params[:event_data][:selected_params][:fbclid]}"
+    end
     # Remove keys longer than 15 characters from all_params
     if event_params[:event_data][:all_params].is_a?(Hash)
       event_params[:event_data][:all_params].delete_if { |key, _| key.to_s.length > 15 }
