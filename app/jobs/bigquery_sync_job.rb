@@ -204,12 +204,12 @@ class BigquerySyncJob < ApplicationJob
         data.merge!(nested_data)
         schema.merge!(nested_schema) { |_k, old_val, new_val| merge_schemas(old_val, new_val) }
       elsif value.is_a?(Array)
-        array_element_type = infer_bigquery_type(value.first)
+        array_element_type = infer_bigquery_type(value.first, field_name)
         data[field_name] = value
         schema[field_name] = { type: array_element_type, mode: "REPEATED" }
       else
         data[field_name] = value
-        schema[field_name] = { type: infer_bigquery_type(value), mode: "NULLABLE" }
+        schema[field_name] = { type: infer_bigquery_type(value, field_name), mode: "NULLABLE" }
       end
     end
 
@@ -321,8 +321,9 @@ class BigquerySyncJob < ApplicationJob
     bigquery.query merge_sql
   end
 
-  def infer_bigquery_type(value)
-    return "TIMESTAMP" if valid_datetime?(value)
+  def infer_bigquery_type(value, field_name)
+    # Return TIMESTAMP if field_name ends with "_ts"
+    return "TIMESTAMP" if field_name&.end_with?("_ts")
     case value
     when Integer
       "INTEGER"
@@ -339,12 +340,6 @@ class BigquerySyncJob < ApplicationJob
     end
   end
 
-  def valid_datetime?(string)
-    DateTime.parse(string)
-    true
-  rescue
-    false
-  end
   def create_persons_table(dataset)
     dataset.create_table("web_persons") do |schema|
       schema.string "uuid", mode: "REQUIRED"
