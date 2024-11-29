@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  resources :facebook_syncs
+  resources :error_logs
   mount MissionControl::Jobs::Engine, at: "/jobs"
   get "metrics/index"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

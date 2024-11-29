@@ -1,5 +1,6 @@
 // visitor-logger.js
 
+var _hsq = (window._hsq = window._hsq || []);
 (function (window, document) {
   "use strict";
 
@@ -40,6 +41,8 @@
       }
 
       uuid = getUUID();
+      _hsq.push(["identify", { id: uuid }]);
+      _hsq.push(['trackPageView']);
       captureUrlParameters();
       sendVisitData();
       bindEvents();
@@ -103,13 +106,29 @@
           screen_width: window.screen.width,
           screen_height: window.screen.height,
           selected_params: captureUrlParameters(),
-          all_params: getAllUrlParams()
+          all_params: getAllUrlParams(),
+          fbp: getFacebookPixelParameter(),
         },
       };
 
       sendData("visit", data);
     }
-
+    function getFacebookPixelParameter() {
+      // Get all cookies as a string
+      const cookies = document.cookie.split(';');
+  
+      // Find the _fbp cookie
+      const fbpCookie = cookies.find(cookie => cookie.trim().startsWith('_fbp='));
+  
+      if (fbpCookie) {
+          // Extract the value of _fbp
+          const [, fbpValue] = fbpCookie.split('=');
+          return decodeURIComponent(fbpValue);
+      }
+  
+      // Return null if _fbp cookie isn't found
+      return null;
+  }
     function bindEvents() {
       // Click events
       document.addEventListener("click", function (event) {

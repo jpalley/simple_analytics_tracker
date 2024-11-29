@@ -8,21 +8,33 @@ class BigquerySyncJob < ApplicationJob
   queue_as :default
 
   def perform
-    # Initialize BigQuery client (project_id and credentials are set globally)
-    bigquery = Google::Cloud::Bigquery.new(
-      project: ENV["GOOGLE_CLOUD_PROJECT"],
-      credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
-      # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
-    )
+    begin
+      # Initialize BigQuery client (project_id and credentials are set globally)
+      if Rails.env.development?
+        bigquery = Google::Cloud::Bigquery.new(
+          project: ENV["GOOGLE_CLOUD_PROJECT"],
+          # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+        credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
+        )
+      else
+        bigquery = Google::Cloud::Bigquery.new(
+          project: ENV["GOOGLE_CLOUD_PROJECT"],
+        # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+        credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
+      )
+      end
 
-    dataset_id = ENV["BIGQUERY_DATASET"]
-    dataset = bigquery.dataset(dataset_id) || bigquery.create_dataset(dataset_id)
+      dataset_id = ENV["BIGQUERY_DATASET"]
+      dataset = bigquery.dataset(dataset_id) || bigquery.create_dataset(dataset_id)
 
-    # Sync Persons
-    bulk_sync_persons(bigquery, dataset)
+      # Sync Persons
+      bulk_sync_persons(bigquery, dataset)
 
-    # Sync Events
-    bulk_sync_events(bigquery, dataset)
+      # Sync Events
+      bulk_sync_events(bigquery, dataset)
+    rescue => e
+      ErrorLog.create(title: "BigQuery Sync Job Error for #{job_id}, Enqueued at: #{enqueued_at}", body: e.inspect)
+    end
   end
 
   private
@@ -81,10 +93,11 @@ class BigquerySyncJob < ApplicationJob
         load_job.wait_until_done!
 
         if load_job.failed?
-          Rails.logger.error "Failed to load data into BigQuery: #{load_job.error}"
-          # Rails.logger.error "JSON size: #{tempfile.size}; JSON rows: #{formatted_row.count}"
-          # Rails.logger.error formatted_row[1..100].to_json
-          raise "Failed to load data into BigQuery  #{load_job.error} | #{load_job.errors.inspect}"
+          ErrorLog.create(
+            title: "Failed to load person data. Job ID: #{job_id}, Enqueued at: #{enqueued_at}",
+            body: "BigQuery Load Job Error: #{load_job.error.inspect}"
+          )
+          raise "Failed to load data into BigQuery. Job ID: #{job_id}, Error: #{load_job.error} | #{load_job.errors.inspect}"
           return
         end
       end
@@ -137,10 +150,11 @@ class BigquerySyncJob < ApplicationJob
         load_job.wait_until_done!
 
         if load_job.failed?
-          Rails.logger.error "Failed to load data into BigQuery: #{load_job.error}"
-          # Rails.logger.error "JSON size: #{tempfile.size}; JSON rows: #{formatted_row.count}"
-          # Rails.logger.error formatted_row[1..100].to_json
-          raise "Failed to load data into BigQuery  #{load_job.error} | #{load_job.errors.inspect}"
+          ErrorLog.create(
+            title: "Failed to load event data. Job ID: #{job_id}, Enqueued at: #{enqueued_at}",
+            body: "BigQuery Load Job Error: #{load_job.error.inspect}"
+          )
+          raise "Failed to load data into BigQuery. Job ID: #{job_id}, Error: #{load_job.error} | #{load_job.errors.inspect}"
           return
         else
           # Update events as synced

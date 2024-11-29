@@ -1,0 +1,7 @@
+<h1>New Error Log Created</h1>
+
+<p>A new error log has been created with the following details:</p>
+
+<% @error_log.attributes.each do |attribute, value| %>
+  <p><strong><%= attribute.titleize %>:</strong> <%= value %></p>
+<% end %>

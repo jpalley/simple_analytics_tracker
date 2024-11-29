@@ -1,0 +1,16 @@
+<p style="color: green"><%= notice %></p>
+
+<% content_for :title, "Facebook syncs" %>
+
+<h1>Facebook syncs</h1>
+
+<div id="facebook_syncs">
+  <% @facebook_syncs.each do |facebook_sync| %>
+    <%= render facebook_sync %>
+    <p>
+      <%= link_to "Show this facebook sync", facebook_sync %>
+    </p>
+  <% end %>
+</div>
+
+<%= link_to "New facebook sync", new_facebook_sync_path %>

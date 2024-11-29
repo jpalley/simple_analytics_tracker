@@ -73,3 +73,5 @@ gem "browser", "~> 6.0.0"
 gem "rack-cors"
 
 gem "httparty", "~> 0.22.0"
+
+gem "facebookbusiness", "~> 21.0"

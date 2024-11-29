@@ -1,0 +1,12 @@
+<% content_for :title, "Editing facebook sync" %>
+
+<h1>Editing facebook sync</h1>
+
+<%= render "form", facebook_sync: @facebook_sync %>
+
+<br>
+
+<div>
+  <%= link_to "Show this facebook sync", @facebook_sync %> |
+  <%= link_to "Back to facebook syncs", facebook_syncs_path %>
+</div>

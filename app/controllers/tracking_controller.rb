@@ -42,7 +42,7 @@ class TrackingController < ApplicationController
       "cf-ipcity", "cf-ipcountry", "cf-ipcontinent", "cf-iplongitude", "cf-iplatitude",
       "cf-region", "cf-region-code", "cf-metro-code", "cf-postal-code", "cf-timezone", "cf-connecting-ip"
     ]
-    additional_headers = [ :formatted_fbclid, :user_agent, :browser_platform_name, :browser_mobile, :browser_name, :js_user_agent, :referrer ]
+    additional_headers = [ :formatted_fbclid, :user_agent, :browser_platform_name, :browser_mobile, :browser_name, :js_user_agent, :referrer, :fbp ]
 
     captured_headers.each do |header|
       if request.headers[header]

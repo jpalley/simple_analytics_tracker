@@ -1,0 +1,10 @@
+<p style="color: green"><%= notice %></p>
+
+<%= render @facebook_sync %>
+
+<div>
+  <%= link_to "Edit this facebook sync", edit_facebook_sync_path(@facebook_sync) %> |
+  <%= link_to "Back to facebook syncs", facebook_syncs_path %>
+
+  <%= button_to "Destroy this facebook sync", @facebook_sync, method: :delete %>
+</div>

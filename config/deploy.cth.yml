@@ -20,6 +20,10 @@ env:
   clear:
     GOOGLE_CLOUD_PROJECT: clever-builds-production
     BIGQUERY_DATASET: cdp
+    SENDGRID_DOMAIN: clevertinyhomes.com
+    ERROR_NOTIFICATION_EMAIL: jonathan@clevertinyhomes.com
+    SENDGRID_FROM_EMAIL: hello@clevertinyhomes.com
+
 
     # Set number of processes dedicated to Solid Queue (default: 1)
     # JOB_CONCURRENCY: 3

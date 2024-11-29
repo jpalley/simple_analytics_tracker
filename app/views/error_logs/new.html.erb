@@ -1,0 +1,11 @@
+<% content_for :title, "New error log" %>
+
+<h1>New error log</h1>
+
+<%= render "form", error_log: @error_log %>
+
+<br>
+
+<div>
+  <%= link_to "Back to error logs", error_logs_path %>
+</div>

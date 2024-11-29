@@ -10,7 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_10_13_033807) do
+ActiveRecord::Schema[8.0].define(version: 2024_11_29_024910) do
+  create_table "error_logs", force: :cascade do |t|
+    t.string "title"
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "events", force: :cascade do |t|
     t.string "uuid"
     t.string "event_type"
@@ -21,6 +28,15 @@ ActiveRecord::Schema[8.0].define(version: 2024_10_13_033807) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["uuid"], name: "index_events_on_uuid"
+  end
+
+  create_table "facebook_syncs", force: :cascade do |t|
+    t.string "table_name"
+    t.string "event_name"
+    t.string "event_value"
+    t.string "last_counter"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "hourly_stats", force: :cascade do |t|
@@ -41,6 +57,7 @@ ActiveRecord::Schema[8.0].define(version: 2024_10_13_033807) do
     t.datetime "synced_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "hubspot_synced_at"
   end
 
   add_foreign_key "events", "people", column: "uuid", primary_key: "uuid"
