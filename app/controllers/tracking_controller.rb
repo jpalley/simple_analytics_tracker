@@ -50,7 +50,7 @@ class TrackingController < ApplicationController
       end
     end
     event_params[:event_data][:user_agent] = request.user_agent
-    if event_params[:event_data][:selected_params][:fbclid].present?
+    if event_params[:event_data][:selected_params] && event_params[:event_data][:selected_params][:fbclid].present?
       event_params[:event_data][:formatted_fbclid] = "fb.1.#{Time.now.utc.to_i * 1000}.#{event_params[:event_data][:selected_params][:fbclid]}"
     end
     # Remove keys longer than 15 characters from all_params
