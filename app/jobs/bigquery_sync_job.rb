@@ -19,8 +19,8 @@ class BigquerySyncJob < ApplicationJob
       else
         bigquery = Google::Cloud::Bigquery.new(
           project: ENV["GOOGLE_CLOUD_PROJECT"],
-        # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
-        credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
+        credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+        # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
       )
       end
 
@@ -34,6 +34,7 @@ class BigquerySyncJob < ApplicationJob
       bulk_sync_events(bigquery, dataset)
     rescue => e
       ErrorLog.create(title: "BigQuery Sync Job Error for #{job_id}, Enqueued at: #{enqueued_at}", body: e.inspect)
+      raise e
     end
   end
 
