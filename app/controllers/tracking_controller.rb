@@ -6,6 +6,9 @@ class TrackingController < ApplicationController
     person = Person.find_or_initialize_by(uuid: identify_params[:uuid])
 
     identify_params[:properties]&.each do |key, value|
+      if person.properties[key] != value
+        person.properties["old_#{key}"] = person.properties[key]
+      end
       person.properties[key] = value
     end
 
