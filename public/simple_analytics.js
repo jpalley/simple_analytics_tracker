@@ -107,7 +107,6 @@ var _hsq = (window._hsq = window._hsq || []);
           screen_height: window.screen.height,
           selected_params: captureUrlParameters(),
           all_params: getAllUrlParams(),
-          fbp: getFacebookPixelParameter(),
         },
       };
 
