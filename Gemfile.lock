@@ -85,7 +85,7 @@ GEM
       msgpack (~> 1.2)
     brakeman (6.2.1)
       racc
-    browser (6.0.0)
+    browser (6.2.0)
     builder (3.3.0)
     capybara (3.40.0)
       addressable
@@ -431,7 +431,7 @@ PLATFORMS
 DEPENDENCIES
   bootsnap
   brakeman
-  browser (~> 6.0.0)
+  browser (~> 6.2.0)
   capybara
   cssbundling-rails
   debug
