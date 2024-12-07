@@ -34,7 +34,7 @@ class FacebookSyncJob < ApplicationJob
       query = <<-SQL
         SELECT email, phone, user_agent, ip_address, fbc, fbp, row_counter, conversion_time FROM `#{table_name}`
 
-        WHERE row_counter > #{last_counter} ORDER BY row_counter DESC limit 3
+        WHERE row_counter > #{last_counter} ORDER BY row_counter DESC
       SQL
 
       results = bigquery.query query
