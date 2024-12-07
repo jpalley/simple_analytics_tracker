@@ -26,7 +26,7 @@ class FacebookSyncJob < ApplicationJob
     )
     end
 
-    FacebookSync.all.each do |sync|
+    FacebookSync.where(enabled: true).each do |sync|
       table_name = sync.table_name
       last_counter = sync.last_counter
 

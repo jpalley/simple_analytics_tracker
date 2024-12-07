@@ -22,3 +22,6 @@ production:
   hubspot_sync:
     class: HubspotSyncJob
     schedule: every 60 minutes
+  facebook_sync:
+    class: FacebookSyncJob
+    schedule: every 240 minutes
