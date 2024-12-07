@@ -23,6 +23,7 @@ env:
     SENDGRID_DOMAIN: clevertinyhomes.com
     ERROR_NOTIFICATION_EMAIL: jonathan@clevertinyhomes.com
     SENDGRID_FROM_EMAIL: hello@clevertinyhomes.com
+    FACEBOOK_PIXEL_ID: 651217262831156
 
 
     # Set number of processes dedicated to Solid Queue (default: 1)

@@ -1,5 +1,24 @@
 <div id="<%= dom_id facebook_sync %>">
   <p>
+    <strong>Created at:</strong>
+    <%= facebook_sync.created_at %>
+  </p>
+  <p>
+    <strong>Updated at:</strong>
+    <%= facebook_sync.updated_at %>
+  </p>
+
+  <p>
+    <strong>Enabled:</strong>
+    <%= facebook_sync.enabled %>
+  </p>
+
+  <p>
+    <strong>Test mode:</strong>
+    <%= facebook_sync.test_mode %>
+  </p>
+
+  <p>
     <strong>Table name:</strong>
     <%= facebook_sync.table_name %>
   </p>
@@ -17,6 +36,11 @@
   <p>
     <strong>Last counter:</strong>
     <%= facebook_sync.last_counter %>
+  </p>
+
+  <p>
+    <strong>Event source url:</strong>
+    <%= facebook_sync.event_source_url %>
   </p>
 
 </div>

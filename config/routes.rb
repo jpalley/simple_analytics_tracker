@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   # Add the UI routes with basic HTTP authentication
   get "metrics", to: "metrics#index"
 
+  get "facebook_syncs", to: "facebook_syncs#index"
 
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest

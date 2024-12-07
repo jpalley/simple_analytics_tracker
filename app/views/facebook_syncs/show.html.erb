@@ -1,7 +1,14 @@
 <p style="color: green"><%= notice %></p>
 
 <%= render @facebook_sync %>
-
+<div>
+  <h3>History</h3>
+  <ul>
+    <% @facebook_sync.facebook_sync_histories.order(created_at: :desc).limit(100).each do |history| %>
+      <li><%= history.created_at %> - <%= history.conversions %> conversions</li>
+    <% end %>
+  </ul>
+</div>
 <div>
   <%= link_to "Edit this facebook sync", edit_facebook_sync_path(@facebook_sync) %> |
   <%= link_to "Back to facebook syncs", facebook_syncs_path %>

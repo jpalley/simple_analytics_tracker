@@ -65,6 +65,6 @@ class FacebookSyncsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def facebook_sync_params
-      params.expect(facebook_sync: [ :table_name, :event_name, :event_value, :last_counter ])
+      params.require(:facebook_sync).permit!
     end
 end
