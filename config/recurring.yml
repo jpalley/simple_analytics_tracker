@@ -10,12 +10,12 @@
 #     schedule: at 5am every day
 
 production:
-  # facebook_sync:
-  #   class: FacebookSyncJob
-  #   schedule: every 240 minutes
-  # hourly_stat:
-  #   class: HourlyStatJob
-  #   schedule: every hour
+  facebook_sync:
+    class: FacebookSyncJob
+    schedule: every 60 minutes
+  hourly_stat:
+    class: HourlyStatJob
+    schedule: every hour
   bigquery_sync:
     class: BigquerySyncJob
     schedule: every 10 minutes
