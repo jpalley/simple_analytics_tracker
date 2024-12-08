@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_11_29_020237) do
+ActiveRecord::Schema[8.0].define(version: 2024_12_07_071418) do
   create_table "error_logs", force: :cascade do |t|
     t.string "title"
     t.text "body"
@@ -28,6 +28,27 @@ ActiveRecord::Schema[8.0].define(version: 2024_11_29_020237) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["uuid"], name: "index_events_on_uuid"
+  end
+
+  create_table "facebook_sync_histories", force: :cascade do |t|
+    t.integer "conversions"
+    t.integer "facebook_sync_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["facebook_sync_id"], name: "index_facebook_sync_histories_on_facebook_sync_id"
+  end
+
+  create_table "facebook_syncs", force: :cascade do |t|
+    t.string "table_name"
+    t.string "event_name"
+    t.string "event_value"
+    t.string "last_counter"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "event_source_url"
+    t.string "action_source"
+    t.boolean "enabled", default: true
+    t.boolean "test_mode", default: false
   end
 
   create_table "hourly_stats", force: :cascade do |t|
