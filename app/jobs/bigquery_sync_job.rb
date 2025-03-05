@@ -252,8 +252,8 @@ class BigquerySyncJob < ApplicationJob
 
 
   def update_table_schema(table, data_schema)
-    existing_fields = collect_existing_fields(table.schema.fields)
-    new_fields = data_schema.keys - existing_fields
+    existing_fields = collect_existing_fields(table.schema.fields).map(&:downcase)
+    new_fields = data_schema.keys.select { |key| !existing_fields.include?(key.downcase) }
 
     return if new_fields.empty?
 
