@@ -400,7 +400,7 @@ GEM
     thruster (0.1.8-x86_64-linux)
     timeout (0.4.2)
     trailblazer-option (0.1.2)
-    turbo-rails (2.0.10)
+    turbo-rails (2.0.11)
       actionpack (>= 6.0.0)
       railties (>= 6.0.0)
     tzinfo (2.0.6)
