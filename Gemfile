@@ -69,7 +69,7 @@ end
 gem "google-cloud-bigquery", "~> 1.50.0"
 gem "groupdate", "~> 6.5.1"
 gem "mission_control-jobs", "~> 0.5.0"
-gem "browser", "~> 6.0.0"
+gem "browser", "~> 6.2.0"
 gem "rack-cors"
 
 gem "httparty", "~> 0.22.0"
