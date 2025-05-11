@@ -18,10 +18,26 @@ production:
     schedule: every hour
   bigquery_sync:
     class: BigquerySyncJob
-    schedule: every 10 minutes
+    schedule: every 5 days
   data_cleanup:
     class: DataCleanupJob
     schedule: every day at 2am
   hubspot_sync:
     class: HubspotSyncJob
     schedule: every 60 minutes
+  hubspot_bigquery_sync:
+    class: HubspotBigquerySyncJob
+    schedule: every 3 hours
+  # Individual object syncs to distribute load
+  # hubspot_core_sync:
+  #   class: HubspotBigquerySyncJob
+  #   args: ["contacts"]
+  #   schedule: every 6 hours
+  # hubspot_deals_sync:
+  #   class: HubspotBigquerySyncJob
+  #   args: ["deals"]
+  #   schedule: every 6 hours
+  # hubspot_activities_sync:
+  #   class: HubspotBigquerySyncJob
+  #   args: ["engagements"]
+  #   schedule: every 8 hours

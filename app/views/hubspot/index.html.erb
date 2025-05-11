@@ -1,0 +1,393 @@
+<h1>Hubspot BigQuery Sync</h1>
+
+<% if flash[:notice] %>
+  <div class="notice"><%= flash[:notice] %></div>
+<% end %>
+
+<% if flash[:error] %>
+  <div class="error"><%= flash[:error] %></div>
+<% end %>
+
+<div class="actions">
+  <%= button_to "Sync All Objects (Incremental)", sync_hubspot_index_path, method: :post, class: "btn btn-primary" %>
+  <%= button_to "Full Sync All Objects", sync_hubspot_index_path(full_sync: true), method: :post, class: "btn btn-warning", data: { confirm: "Full sync will re-sync all data and may take a long time. Are you sure?" } %>
+  <%= button_to "Update All Schemas", schema_update_hubspot_index_path, method: :post, class: "btn btn-info" %>
+</div>
+
+<div class="info-box">
+  <h3>Sync & Schema Options</h3>
+  <p>
+    <strong>Incremental Sync:</strong> Only syncs records that were updated since the last successful sync. This is faster and recommended for regular use.
+  </p>
+  <p>
+    <strong>Full Sync:</strong> Syncs all records regardless of when they were last updated. Use this if data appears to be inconsistent or missing.
+  </p>
+  <p>
+    <strong>Update Schema:</strong> Updates the BigQuery table schema to include all current Hubspot properties. Use this when new properties are added in Hubspot or if properties are missing from the BigQuery tables.
+  </p>
+</div>
+
+<h2>Sync Status by Object Type</h2>
+
+<div class="filter-controls">
+  <button class="btn btn-sm" onclick="filterObjectTypes('all')">All</button>
+  <button class="btn btn-sm" onclick="filterObjectTypes('core')">Core Objects</button>
+  <button class="btn btn-sm" onclick="filterObjectTypes('meta')">Meta Objects</button>
+  <button class="btn btn-sm" onclick="filterObjectTypes('activities')">Activities</button>
+</div>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Object Type</th>
+      <th>Last Successful Sync</th>
+      <th>Records Count</th>
+      <th>Status</th>
+      <th>Incremental?</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @object_types.each do |object_type| %>
+      <% 
+        category = case object_type
+          when "contacts", "companies", "deals", "tickets", "owners"
+            "core"
+          when "deal_pipelines", "deal_stages", "properties", "workflows", "lists"
+            "meta" 
+          else
+            "activities"
+          end
+        supports_incremental = HubspotBigquerySyncJob::HUBSPOT_OBJECTS[object_type.to_sym][:supports_incremental] rescue false
+      %>
+      <tr class="object-type <%= category %>">
+        <td><%= object_type.humanize %></td>
+        <td>
+          <% if @last_syncs[object_type] %>
+            <%= @last_syncs[object_type].synced_at&.strftime("%Y-%m-%d %H:%M:%S") || "Never" %>
+          <% else %>
+            Never
+          <% end %>
+        </td>
+        <td>
+          <% if @last_syncs[object_type] %>
+            <%= @last_syncs[object_type].record_count || 0 %>
+          <% else %>
+            0
+          <% end %>
+        </td>
+        <td>
+          <% last_status = HubspotSyncStatus.last_sync(object_type)&.status || "N/A" %>
+          <span class="status-<%= last_status.downcase %>"><%= last_status %></span>
+        </td>
+        <td>
+          <% if supports_incremental %>
+            <span class="badge badge-success">Yes</span>
+          <% else %>
+            <span class="badge badge-secondary">No</span>
+          <% end %>
+        </td>
+        <td>
+          <%= button_to "Sync Now", sync_hubspot_index_path(object_type: object_type), method: :post, class: "btn btn-sm btn-primary" %>
+          <%= button_to "Full Sync", sync_hubspot_index_path(object_type: object_type, full_sync: true), method: :post, class: "btn btn-sm btn-warning" %>
+          <%= button_to "Update Schema", schema_update_hubspot_index_path(object_type: object_type), method: :post, class: "btn btn-sm btn-info" %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<h2>Recent Sync History</h2>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>Object Type</th>
+      <th>Status</th>
+      <th>Record Count</th>
+      <th>Synced At</th>
+      <th>Updated At</th>
+      <th>Error Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @sync_statuses.each do |status| %>
+      <tr class="<%= status.status %>">
+        <td><%= status.object_type.humanize %></td>
+        <td><%= status.status %></td>
+        <td><%= status.record_count || 0 %></td>
+        <td><%= status.synced_at&.strftime("%Y-%m-%d %H:%M:%S") %></td>
+        <td><%= status.updated_at.strftime("%Y-%m-%d %H:%M:%S") %></td>
+        <td><%= truncate(status.error_message, length: 100) if status.error_message.present? %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<% if @error_logs.present? %>
+  <h2>Recent Error Logs</h2>
+  
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Time</th>
+        <th>Message</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @error_logs.each do |error_log| %>
+        <tr>
+          <td><%= error_log.title %></td>
+          <td><%= error_log.created_at.strftime("%Y-%m-%d %H:%M:%S") %></td>
+          <td><%= truncate(error_log.body, length: 200) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<% if Rails.env.development? %>
+  <div class="dev-tools">
+    <h2>Development Tools</h2>
+    <p class="alert">These tools are only available in development mode. They run the sync job immediately without queueing.</p>
+    
+    <div class="actions">
+      <%= button_to "Run Sync Now (Incremental)", run_console_hubspot_index_path, method: :post, class: "btn btn-primary" %>
+      <%= button_to "Run Full Sync Now", run_console_hubspot_index_path(full_sync: true), method: :post, class: "btn btn-warning", data: { confirm: "Full sync will re-sync all data and may take a long time. Are you sure?" } %>
+    </div>
+    
+    <div class="object-tools">
+      <h3>Run for Specific Object</h3>
+      <div class="object-buttons">
+        <% @object_types.each do |object_type| %>
+          <%= button_to object_type.humanize, run_console_hubspot_index_path(object_type: object_type), method: :post, class: "btn btn-sm btn-secondary" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<script>
+  function filterObjectTypes(category) {
+    // First, show all rows
+    document.querySelectorAll('tr.object-type').forEach(row => {
+      row.style.display = '';
+    });
+    
+    // Then filter if not showing all
+    if (category !== 'all') {
+      document.querySelectorAll('tr.object-type:not(.' + category + ')').forEach(row => {
+        row.style.display = 'none';
+      });
+    }
+    
+    // Update button styles
+    document.querySelectorAll('.filter-controls .btn').forEach(btn => {
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-sm');
+    });
+    document.querySelector('.filter-controls .btn[onclick="filterObjectTypes(\'' + category + '\')"]').classList.add('btn-primary');
+  }
+</script>
+
+<style>
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+  
+  .table th, .table td {
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+  }
+  
+  .table thead th {
+    background-color: #f8f9fa;
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+  }
+  
+  .notice {
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+  }
+  
+  .error {
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+  }
+  
+  .btn {
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    margin: 0.25rem;
+  }
+  
+  .btn-primary {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+  }
+  
+  .btn-warning {
+    color: #212529;
+    background-color: #ffc107;
+    border-color: #ffc107;
+  }
+  
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.2rem;
+  }
+  
+  .btn-secondary {
+    color: #fff;
+    background-color: #6c757d;
+    border-color: #6c757d;
+  }
+  
+  .btn-info {
+    color: #fff;
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+  }
+  
+  .actions {
+    margin: 1rem 0;
+  }
+  
+  .filter-controls {
+    margin: 1rem 0;
+  }
+  
+  .status-success {
+    color: green;
+    font-weight: bold;
+  }
+  
+  .status-error {
+    color: red;
+    font-weight: bold;
+  }
+  
+  .status-in_progress {
+    color: orange;
+    font-weight: bold;
+  }
+  
+  tr.success {
+    background-color: rgba(40, 167, 69, 0.1);
+  }
+  
+  tr.error {
+    background-color: rgba(220, 53, 69, 0.1);
+  }
+  
+  tr.in_progress {
+    background-color: rgba(255, 193, 7, 0.1);
+  }
+  
+  .badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  
+  .badge-success {
+    color: #fff;
+    background-color: #28a745;
+  }
+  
+  .badge-secondary {
+    color: #fff;
+    background-color: #6c757d;
+  }
+  
+  .info-box {
+    background-color: #e9f7fc;
+    border: 1px solid #bee5eb;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .dev-tools {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+  
+  .alert {
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+    color: #856404;
+  }
+  
+  .object-tools {
+    margin-top: 1rem;
+  }
+  
+  .object-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  /* Make button_to forms display inline */
+  form.button_to {
+    display: inline-block;
+    margin: 0.25rem;
+  }
+  
+  /* Specific styling for buttons in object-buttons */
+  .object-buttons form.button_to {
+    margin: 0.25rem 0.25rem 0.25rem 0;
+  }
+  
+  /* Make cell buttons align well */
+  td form.button_to {
+    margin: 0.125rem;
+  }
+  
+  /* Ensure table cells don't get too wide with multiple buttons */
+  td:last-child {
+    white-space: nowrap;
+  }
+</style> 

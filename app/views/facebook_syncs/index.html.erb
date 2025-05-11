@@ -2,42 +2,49 @@
 
 <% content_for :title, "Facebook syncs" %>
 
-<h1>Facebook syncs</h1>
-
-<div id="facebook_syncs">
-  <table class="table table-striped">
- app/views/facebook_syncs/index.html.erb
-// ... existing code ...
-    <thead>
-      <tr>
-        <th>Created at</th>
-        <th>Updated at</th>
-        <th>Enabled</th>
-        <th>Test mode</th>
-        <th>Table name</th>
-        <th>Event name</th>
-        <th>Event value</th>
-        <th>Last counter</th>
-        <th>Event source url</th>
-      </tr>
-    </thead>
-    <% @facebook_syncs.each do |facebook_sync| %>
-      <tr>
-        <td><%= facebook_sync.created_at %></td>
-        <td><%= facebook_sync.updated_at %></td>
-        <td><%= facebook_sync.enabled %></td>
-        <td><%= facebook_sync.test_mode %></td>
-        <td><%= facebook_sync.table_name %></td>
-        <td><%= facebook_sync.event_name %></td>
-        <td><%= facebook_sync.event_value %></td>
-        <td><%= facebook_sync.last_counter %></td>
-        <td><%= facebook_sync.event_source_url %></td>
-        <td><%= link_to "Show", facebook_sync %></td>
-        <td><%= link_to "Edit", edit_facebook_sync_path(facebook_sync) %></td>
-        <td><%= link_to "Destroy", facebook_sync, method: :delete, data: { confirm: 'Are you sure?' } %></td>
-      </tr>
-    <% end %>
-  </table>
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">Facebook syncs</h1>
+    <%= link_to "New facebook sync", new_facebook_sync_path, class: "btn btn-primary" %>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>Created At</th>
+            <th>Status</th>
+            <th>Number of Events</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @facebook_syncs.each do |facebook_sync| %>
+            <tr>
+              <td><%= facebook_sync.created_at.strftime('%Y-%m-%d %H:%M:%S') %></td>
+              <td>
+                <% if facebook_sync.status == 'completed' %>
+                  <span class="badge bg-success">Completed</span>
+                <% elsif facebook_sync.status == 'error' %>
+                  <span class="badge bg-danger">Error</span>
+                <% elsif facebook_sync.status == 'processing' %>
+                  <span class="badge bg-warning text-dark">Processing</span>
+                <% else %>
+                  <span class="badge bg-secondary"><%= facebook_sync.status %></span>
+                <% end %>
+              </td>
+              <td><%= facebook_sync.number_of_events %></td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <%= link_to "View", facebook_sync, class: "btn btn-outline-primary" %>
+                  <%= link_to "Edit", edit_facebook_sync_path(facebook_sync), class: "btn btn-outline-secondary" %>
+                  <%= button_to "Delete", facebook_sync, method: :delete, class: "btn btn-outline-danger", form: { data: { turbo_confirm: "Are you sure?" } } %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
-
-<%= link_to "New facebook sync", new_facebook_sync_path %>

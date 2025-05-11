@@ -13,7 +13,7 @@ class BigquerySyncJob < ApplicationJob
       if Rails.env.development?
         bigquery = Google::Cloud::Bigquery.new(
           project: ENV["GOOGLE_CLOUD_PROJECT"],
-          # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+        # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
         credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
         )
       else

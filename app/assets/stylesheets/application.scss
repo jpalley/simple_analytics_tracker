@@ -1,0 +1,32 @@
+// Import Bootstrap and its dependencies
+@import 'bootstrap/scss/bootstrap';
+@import 'bootstrap-icons/font/bootstrap-icons';
+
+// Custom styles for app (minimal, as we're relying on Bootstrap)
+html, body {
+  min-height: 100vh;
+}
+
+body {
+  padding-bottom: 2rem;
+  background-color: #f8f9fa;
+}
+
+// Add some spacing to the main container
+.container {
+  padding-bottom: 2rem;
+}
+
+// Style for cards
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  margin-bottom: 1.5rem;
+}
+
+// Style for code/pre elements
+pre {
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+} 

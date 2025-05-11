@@ -1,10 +1,18 @@
 <p style="color: green"><%= notice %></p>
 
-<%= render @error_log %>
+<div class="card">
+  <div class="card-header">
+    <h1 class="mb-0">Error Log Details</h1>
+  </div>
+  <div class="card-body">
+    <%= render @error_log %>
 
-<div>
-  <%= link_to "Edit this error log", edit_error_log_path(@error_log) %> |
-  <%= link_to "Back to error logs", error_logs_path %>
-
-  <%= button_to "Destroy this error log", @error_log, method: :delete %>
+    <div class="mt-4">
+      <div class="btn-group">
+        <%= link_to "Edit", edit_error_log_path(@error_log), class: "btn btn-outline-primary" %>
+        <%= link_to "Back to error logs", error_logs_path, class: "btn btn-outline-secondary" %>
+        <%= button_to "Delete this error log", @error_log, method: :delete, class: "btn btn-outline-danger", form: { data: { turbo_confirm: "Are you sure?" } } %>
+      </div>
+    </div>
+  </div>
 </div>

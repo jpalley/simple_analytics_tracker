@@ -1,0 +1,111 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+contacts_success:
+  id: 1
+  object_type: contacts
+  status: success
+  record_count: 1580
+  error_message: 
+  synced_at: <%= Time.current - 1.day %>
+  created_at: <%= Time.current - 1.day %>
+  updated_at: <%= Time.current - 1.day %>
+
+companies_success:
+  id: 2
+  object_type: companies
+  status: success
+  record_count: 342
+  error_message: 
+  synced_at: <%= Time.current - 2.day %>
+  created_at: <%= Time.current - 2.day %>
+  updated_at: <%= Time.current - 2.day %>
+
+deals_success:
+  id: 3
+  object_type: deals
+  status: success
+  record_count: 275
+  error_message: 
+  synced_at: <%= Time.current - 3.day %>
+  created_at: <%= Time.current - 3.day %>
+  updated_at: <%= Time.current - 3.day %>
+
+tickets_error:
+  id: 4
+  object_type: tickets
+  status: error
+  record_count: 0
+  error_message: "API Error: Rate limit exceeded"
+  synced_at: 
+  created_at: <%= Time.current - 4.day %>
+  updated_at: <%= Time.current - 4.day %>
+
+owners_in_progress:
+  id: 5
+  object_type: owners
+  status: in_progress
+  record_count: 
+  error_message: 
+  synced_at: 
+  created_at: <%= Time.current - 5.minutes %>
+  updated_at: <%= Time.current - 5.minutes %>
+
+engagements_success:
+  id: 6
+  object_type: engagements
+  status: success
+  record_count: 1250
+  error_message: 
+  synced_at: <%= Time.current - 5.day %>
+  created_at: <%= Time.current - 5.day %>
+  updated_at: <%= Time.current - 5.day %>
+
+deal_pipelines_success:
+  id: 7
+  object_type: deal_pipelines
+  status: success
+  record_count: 5
+  error_message: 
+  synced_at: <%= Time.current - 6.day %>
+  created_at: <%= Time.current - 6.day %>
+  updated_at: <%= Time.current - 6.day %>
+
+deal_stages_success:
+  id: 8
+  object_type: deal_stages
+  status: success
+  record_count: 25
+  error_message: 
+  synced_at: <%= Time.current - 7.day %>
+  created_at: <%= Time.current - 7.day %>
+  updated_at: <%= Time.current - 7.day %>
+
+workflows_success:
+  object_type: workflows
+  status: success
+  record_count: 15
+  synced_at: <%= 3.hours.ago %>
+
+properties_success:
+  object_type: properties
+  status: success
+  record_count: 250
+  synced_at: <%= 6.hours.ago %>
+
+lists_success:
+  object_type: lists
+  status: success
+  record_count: 20
+  synced_at: <%= 12.hours.ago %>
+
+call_records_success:
+  object_type: call_records
+  status: success
+  record_count: 75
+  synced_at: <%= 1.5.days.ago %>
+
+meetings_success:
+  object_type: meetings
+  status: success
+  record_count: 30
+  synced_at: <%= 8.hours.ago %> 

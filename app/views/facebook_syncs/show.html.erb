@@ -1,17 +1,43 @@
 <p style="color: green"><%= notice %></p>
 
-<%= render @facebook_sync %>
-<div>
-  <h3>History</h3>
-  <ul>
-    <% @facebook_sync.facebook_sync_histories.order(created_at: :desc).limit(100).each do |history| %>
-      <li><%= history.created_at %> - <%= history.conversions %> conversions</li>
-    <% end %>
-  </ul>
-</div>
-<div>
-  <%= link_to "Edit this facebook sync", edit_facebook_sync_path(@facebook_sync) %> |
-  <%= link_to "Back to facebook syncs", facebook_syncs_path %>
+<div class="card">
+  <div class="card-header">
+    <h1 class="mb-0">Facebook Sync Details</h1>
+  </div>
+  <div class="card-body">
+    <%= render @facebook_sync %>
 
-  <%= button_to "Destroy this facebook sync", @facebook_sync, method: :delete %>
+    <div class="mt-4">
+      <div class="btn-group">
+        <%= link_to "Edit", edit_facebook_sync_path(@facebook_sync), class: "btn btn-outline-primary" %>
+        <%= link_to "Back to facebook syncs", facebook_syncs_path, class: "btn btn-outline-secondary" %>
+        <%= button_to "Delete this facebook sync", @facebook_sync, method: :delete, class: "btn btn-outline-danger", form: { data: { turbo_confirm: "Are you sure?" } } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header">
+    <h3 class="mb-0">History</h3>
+  </div>
+  <div class="card-body">
+    <ul class="list-group">
+      <% @facebook_sync.versions.reverse.each do |version| %>
+        <li class="list-group-item">
+          <strong><%= version.created_at.strftime('%Y-%m-%d %H:%M:%S') %></strong>: 
+          <% if version.event == 'create' %>
+            Created
+          <% elsif version.event == 'update' %>
+            Updated
+            <ul>
+              <% version.changeset.except(:updated_at).each do |key, change| %>
+                <li><strong><%= key %></strong>: <%= change[0] || 'nil' %> → <%= change[1] || 'nil' %></li>
+              <% end %>
+            </ul>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  </div>
 </div>

@@ -4,8 +4,30 @@
 # model remove the "{}" from the fixture names and add the columns immediately
 # below each fixture, per the syntax in the comments below
 #
-one: {}
-# column: value
-#
-two: {}
+hourly_stat_one:
+  id: 1
+  hour: <%= Time.current.beginning_of_hour %>
+  events_count: 100
+  unique_people_count: 75
+  new_people_count: 25
+  created_at: <%= Time.current - 1.hour %>
+  updated_at: <%= Time.current - 1.hour %>
+
+hourly_stat_two:
+  id: 2
+  hour: <%= Time.current.beginning_of_hour - 1.hour %>
+  events_count: 120
+  unique_people_count: 80
+  new_people_count: 30
+  created_at: <%= Time.current - 2.hours %>
+  updated_at: <%= Time.current - 2.hours %>
+
+hourly_stat_three:
+  id: 3
+  hour: <%= Time.current.beginning_of_hour - 2.hours %>
+  events_count: 80
+  unique_people_count: 60
+  new_people_count: 20
+  created_at: <%= Time.current - 3.hours %>
+  updated_at: <%= Time.current - 3.hours %>
 # column: value

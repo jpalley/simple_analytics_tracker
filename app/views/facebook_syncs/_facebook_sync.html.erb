@@ -1,46 +1,63 @@
-<div id="<%= dom_id facebook_sync %>">
-  <p>
-    <strong>Created at:</strong>
-    <%= facebook_sync.created_at %>
-  </p>
-  <p>
-    <strong>Updated at:</strong>
-    <%= facebook_sync.updated_at %>
-  </p>
-
-  <p>
-    <strong>Enabled:</strong>
-    <%= facebook_sync.enabled %>
-  </p>
-
-  <p>
-    <strong>Test mode:</strong>
-    <%= facebook_sync.test_mode %>
-  </p>
-
-  <p>
-    <strong>Table name:</strong>
-    <%= facebook_sync.table_name %>
-  </p>
-
-  <p>
-    <strong>Event name:</strong>
-    <%= facebook_sync.event_name %>
-  </p>
-
-  <p>
-    <strong>Event value:</strong>
-    <%= facebook_sync.event_value %>
-  </p>
-
-  <p>
-    <strong>Last counter:</strong>
-    <%= facebook_sync.last_counter %>
-  </p>
-
-  <p>
-    <strong>Event source url:</strong>
-    <%= facebook_sync.event_source_url %>
-  </p>
-
+<div id="<%= dom_id facebook_sync %>" class="facebook-sync-details">
+  <div class="row">
+    <div class="col-md-6">
+      <div class="mb-3">
+        <strong>Status:</strong>
+        <% if facebook_sync.status == 'completed' %>
+          <span class="badge bg-success">Completed</span>
+        <% elsif facebook_sync.status == 'error' %>
+          <span class="badge bg-danger">Error</span>
+        <% elsif facebook_sync.status == 'processing' %>
+          <span class="badge bg-warning text-dark">Processing</span>
+        <% else %>
+          <span class="badge bg-secondary"><%= facebook_sync.status %></span>
+        <% end %>
+      </div>
+      
+      <div class="mb-3">
+        <strong>Created at:</strong>
+        <%= facebook_sync.created_at.strftime('%Y-%m-%d %H:%M:%S') %>
+      </div>
+      
+      <div class="mb-3">
+        <strong>Updated at:</strong>
+        <%= facebook_sync.updated_at.strftime('%Y-%m-%d %H:%M:%S') %>
+      </div>
+      
+      <div class="mb-3">
+        <strong>Table name:</strong>
+        <%= facebook_sync.table_name %>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="mb-3">
+        <strong>Event name:</strong>
+        <%= facebook_sync.event_name %>
+      </div>
+      
+      <div class="mb-3">
+        <strong>Event value:</strong>
+        <%= facebook_sync.event_value %>
+      </div>
+      
+      <div class="mb-3">
+        <strong>Event source URL:</strong>
+        <%= facebook_sync.event_source_url %>
+      </div>
+      
+      <div class="mb-3">
+        <strong>Settings:</strong>
+        <div class="mt-1">
+          <span class="badge <%= facebook_sync.enabled? ? 'bg-success' : 'bg-secondary' %>">
+            <%= facebook_sync.enabled? ? 'Enabled' : 'Disabled' %>
+          </span>
+          
+          <span class="badge <%= facebook_sync.test_mode? ? 'bg-warning text-dark' : 'bg-secondary' %>">
+            <%= facebook_sync.test_mode? ? 'Test Mode' : 'Production Mode' %>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

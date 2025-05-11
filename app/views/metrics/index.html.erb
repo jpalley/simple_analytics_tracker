@@ -1,23 +1,29 @@
-
-<h1>Metrics Dashboard</h1>
-
-<table>
-  <thead>
-    <tr>
-      <th>Hour</th>
-      <th>Events Count</th>
-      <th>Unique People Count</th>
-      <th>New People Count</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @hourly_stats.each do |stat| %>
-      <tr>
-        <td><%= stat.hour.strftime('%Y-%m-%d %H:%M') %></td>
-        <td><%= stat.events_count || 0 %></td>
-        <td><%= stat.unique_people_count || 0 %></td>
-        <td><%= stat.new_people_count || 0 %></td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+<div class="card">
+  <div class="card-header">
+    <h1 class="mb-0">Metrics Dashboard</h1>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>Hour</th>
+            <th>Events Count</th>
+            <th>Unique People Count</th>
+            <th>New People Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @hourly_stats.each do |stat| %>
+            <tr>
+              <td><%= stat.hour.strftime('%Y-%m-%d %H:%M') %></td>
+              <td><%= stat.events_count || 0 %></td>
+              <td><%= stat.unique_people_count || 0 %></td>
+              <td><%= stat.new_people_count || 0 %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

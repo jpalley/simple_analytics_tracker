@@ -1,7 +1,7 @@
-<%= form_with(model: facebook_sync, class: "form-horizontal") do |form| %>
+<%= form_with(model: facebook_sync) do |form| %>
   <% if facebook_sync.errors.any? %>
     <div class="alert alert-danger">
-      <h4><%= pluralize(facebook_sync.errors.count, "error") %> prohibited this facebook_sync from being saved:</h4>
+      <h4><%= pluralize(facebook_sync.errors.count, "error") %> prohibited this facebook sync from being saved:</h4>
       <ul>
         <% facebook_sync.errors.each do |error| %>
           <li><%= error.full_message %></li>
@@ -10,46 +10,47 @@
     </div>
   <% end %>
 
-  <div class="form-group">
-    <%= form.label :table_name, class: "control-label" %>
-    <%= form.text_field :table_name, class: "form-control" %>
-  </div>
-
-  <div class="form-group">
-    <%= form.label :event_name, class: "control-label" %>
-    <%= form.text_field :event_name, class: "form-control" %>
-  </div>
-
-  <div class="form-group">
-    <%= form.label :event_value, class: "control-label" %>
-    <%= form.text_field :event_value, class: "form-control" %>
-  </div>
-
-  <div class="form-group">
-    <%= form.label :event_source_url, class: "control-label" %>
-    <%= form.text_field :event_source_url, class: "form-control" %>
-  </div>
-
-  <div class="form-group">
-    <%= form.label :last_counter, class: "control-label" %>
-    <%= form.text_field :last_counter, class: "form-control" %>
-  </div>
-
-  <div class="form-group">
-    <div class="form-check">
-      <%= form.check_box :enabled, class: "form-check-input" %>
-      <%= form.label :enabled, class: "form-check-label" %>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= form.label :enabled, class: "form-label" %>
+      <div class="form-check form-switch">
+        <%= form.check_box :enabled, class: "form-check-input" %>
+      </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+      <%= form.label :test_mode, class: "form-label" %>
+      <div class="form-check form-switch">
+        <%= form.check_box :test_mode, class: "form-check-input" %>
+      </div>
     </div>
   </div>
 
-  <div class="form-group">
-    <div class="form-check">
-      <%= form.check_box :test_mode, class: "form-check-input" %>
-      <%= form.label :test_mode, class: "form-check-label" %>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= form.label :table_name, class: "form-label" %>
+      <%= form.text_field :table_name, class: "form-control" %>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+      <%= form.label :event_name, class: "form-label" %>
+      <%= form.text_field :event_name, class: "form-control" %>
     </div>
   </div>
 
-  <div class="form-group">
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= form.label :event_value, class: "form-label" %>
+      <%= form.text_field :event_value, class: "form-control" %>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+      <%= form.label :event_source_url, class: "form-label" %>
+      <%= form.text_field :event_source_url, class: "form-control" %>
+    </div>
+  </div>
+
+  <div class="mb-3">
     <%= form.submit class: "btn btn-primary" %>
   </div>
 <% end %>

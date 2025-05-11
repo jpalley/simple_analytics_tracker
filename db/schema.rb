@@ -61,6 +61,18 @@ ActiveRecord::Schema[8.0].define(version: 2024_12_07_071418) do
     t.index ["hour"], name: "index_hourly_stats_on_hour", unique: true
   end
 
+  create_table "hubspot_sync_statuses", force: :cascade do |t|
+    t.string "object_type", null: false
+    t.string "status", null: false
+    t.integer "record_count"
+    t.text "error_message"
+    t.datetime "synced_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["object_type"], name: "index_hubspot_sync_statuses_on_object_type"
+    t.index ["status"], name: "index_hubspot_sync_statuses_on_status"
+  end
+
   create_table "people", primary_key: "uuid", id: :string, force: :cascade do |t|
     t.json "initial_params"
     t.json "latest_params"

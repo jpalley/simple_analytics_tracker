@@ -2,16 +2,27 @@
 
 <% content_for :title, "Error logs" %>
 
-<h1>Error logs</h1>
-
-<div id="error_logs">
-  <% @error_logs.each do |error_log| %>
-    <hr/>
-    <%= render error_log %>
-    <p>
-      <%= link_to "Show this error log", error_log %>
-    </p>
-  <% end %>
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">Error logs</h1>
+    <%= link_to "New error log", new_error_log_path, class: "btn btn-primary" %>
+  </div>
+  <div class="card-body">
+    <div id="error_logs">
+      <% if @error_logs.any? %>
+        <div class="list-group">
+          <% @error_logs.each do |error_log| %>
+            <div class="list-group-item">
+              <%= render error_log %>
+              <div class="mt-2">
+                <%= link_to "Show details", error_log, class: "btn btn-sm btn-outline-secondary" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-muted">No error logs found.</p>
+      <% end %>
+    </div>
+  </div>
 </div>
-
-<%= link_to "New error log", new_error_log_path %>

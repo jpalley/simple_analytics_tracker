@@ -53,6 +53,12 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
 
   gem "dotenv"
+
+  # Call 'byebug' anywhere in the code to stop execution and get a debugger console
+  gem "byebug", platforms: [ :mri, :mingw, :x64_mingw ]
+  gem "standard"
+  gem "mocha"
+  gem "rails-controller-testing"
 end
 
 group :development do
@@ -64,9 +70,12 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  gem "mocha", require: false
+  gem "rails-controller-testing"
 end
 
 gem "google-cloud-bigquery", "~> 1.50.0"
+gem "hubspot-api-client", "~> 16.0.0"  # Official Hubspot API Client
 gem "groupdate", "~> 6.5.1"
 gem "mission_control-jobs", "~> 0.5.0"
 gem "browser", "~> 6.0.0"

@@ -17,6 +17,15 @@ Rails.application.routes.draw do
 
   get "facebook_syncs", to: "facebook_syncs#index"
 
+  # Hubspot routes
+  resources :hubspot, only: [ :index ] do
+    collection do
+      post :sync
+      post :run_console
+      post :schema_update
+    end
+  end
+
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
