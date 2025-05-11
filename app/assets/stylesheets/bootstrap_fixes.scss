@@ -1,0 +1,18 @@
+// Fix for Bootstrap SASS deprecation warnings
+
+// Override the deprecated color functions
+@use "sass:color";
+@use "sass:math";
+
+// Create replacement functions for the deprecated ones
+@function red($color) {
+  @return math.round(color.channel($color, "red", $space: rgb));
+}
+
+@function green($color) {
+  @return math.round(color.channel($color, "green", $space: rgb));
+}
+
+@function blue($color) {
+  @return math.round(color.channel($color, "blue", $space: rgb));
+} 

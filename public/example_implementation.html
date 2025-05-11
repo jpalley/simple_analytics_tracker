@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Analytics Tracker Example</title>
+    
+    <!-- Generate or retrieve visitor UUID before script loads -->
+    <script>
+      (function() {
+        function generateUUID() {
+          return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+            /[xy]/g,
+            function (c) {
+              var r = (Math.random() * 16) | 0,
+                v = c === "x" ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            }
+          );
+        }
+        
+        // Initialize or retrieve UUID from localStorage
+        var visitorUUID = localStorage.getItem("visitor_uuid");
+        if (!visitorUUID) {
+          visitorUUID = generateUUID();
+          localStorage.setItem("visitor_uuid", visitorUUID);
+        }
+        
+        // Make UUID globally available immediately
+        window.VISITOR_UUID = visitorUUID;
+        window.getVisitorUUID = function() {
+          return visitorUUID;
+        };
+        
+        // Optional: Log the UUID to confirm it's available immediately
+        console.log("UUID is available immediately:", window.VISITOR_UUID);
+      })();
+    </script>
+    
+    <!-- Example of using the visitor UUID with other scripts -->
+    <script>
+      // Example: Use UUID with data layer for marketing pixels
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ 'visitor_id': window.VISITOR_UUID });
+      console.log("Added UUID to dataLayer:", window.VISITOR_UUID);
+    </script>
+    
+    <!-- Then load the analytics script -->
+    <script src="simple_analytics.js" async defer></script>
+</head>
+<body>
+    <h1>Simple Analytics Tracker Example</h1>
+    <p>This page demonstrates how to implement the Simple Analytics Tracker.</p>
+    <p>Your visitor ID is: <strong id="visitor-id-display"></strong></p>
+    
+    <button id="test-button">Track Custom Event</button>
+    
+    <script>
+        // Display the UUID on the page
+        document.getElementById('visitor-id-display').textContent = window.VISITOR_UUID;
+        
+        // Initialize the tracker
+        document.addEventListener('DOMContentLoaded', function() {
+            VisitorLogger.init({
+                serverUrl: 'https://analytics.clever-builds.com/',
+                enableScrollDepth: true,
+                enableEventLogging: true,
+                customParameters: ['rfid']
+            });
+            
+            // Optional: Track button clicks as custom events
+            document.getElementById('test-button').addEventListener('click', function() {
+                VisitorLogger.trackEvent('button_click', {
+                    buttonId: 'test-button',
+                    buttonText: this.textContent
+                });
+                alert('Event tracked!');
+            });
+        });
+    </script>
+</body>
+</html> 

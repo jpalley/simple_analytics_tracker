@@ -1,6 +1,5 @@
 // visitor-logger.js
 
-var _hsq = (window._hsq = window._hsq || []);
 (function (window, document) {
   "use strict";
 
@@ -25,28 +24,8 @@ var _hsq = (window._hsq = window._hsq || []);
       "msclkid",
     ];
 
-    var uuid;
-
-    function init(options) {
-      // Merge user options with default config
-      for (var key in options) {
-        if (options.hasOwnProperty(key)) {
-          config[key] = options[key];
-        }
-      }
-
-      if (!config.serverUrl) {
-        console.error("VisitorLogger: serverUrl is required.");
-        return;
-      }
-
-      uuid = getUUID();
-      _hsq.push(["identify", { id: uuid }]);
-      _hsq.push(['trackPageView']);
-      captureUrlParameters();
-      sendVisitData();
-      bindEvents();
-    }
+    // Get the UUID from the global scope or use the existing one from localStorage
+    var uuid = (window.VISITOR_UUID) ? window.VISITOR_UUID : getUUID();
 
     function getUUID() {
       var storedUuid = localStorage.getItem("visitor_uuid");
@@ -69,6 +48,30 @@ var _hsq = (window._hsq = window._hsq || []);
       );
     }
 
+    function init(options) {
+      // Merge user options with default config
+      for (var key in options) {
+        if (options.hasOwnProperty(key)) {
+          config[key] = options[key];
+        }
+      }
+
+      if (!config.serverUrl) {
+        console.error("VisitorLogger: serverUrl is required.");
+        return;
+      }
+
+      captureUrlParameters();
+      sendVisitData();
+      bindEvents();
+      
+      // Setup email field monitoring
+      monitorEmailFields();
+      
+      // Check for Hubspot cookie immediately and periodically
+      checkHubspotCookie();
+    }
+
     function captureUrlParameters() {
       var params = new URLSearchParams(window.location.search);
       var capturedParams = {};
@@ -81,6 +84,7 @@ var _hsq = (window._hsq = window._hsq || []);
       });
       return capturedParams;
     }
+    
     // Add this new function to capture all URL parameters
     function getAllUrlParams() {
       var params = new URLSearchParams(window.location.search);
@@ -112,6 +116,7 @@ var _hsq = (window._hsq = window._hsq || []);
 
       sendData("visit", data);
     }
+    
     function getFacebookPixelParameter() {
       // Get all cookies as a string
       const cookies = document.cookie.split(';');
@@ -127,7 +132,52 @@ var _hsq = (window._hsq = window._hsq || []);
   
       // Return null if _fbp cookie isn't found
       return null;
-  }
+    }
+    
+    // Function to monitor all email fields, including dynamically added ones
+    function monitorEmailFields() {
+      // Initial setup for all existing email fields
+      var emailFields = document.querySelectorAll('input[type="email"]');
+      emailFields.forEach(attachEmailListener);
+      
+      // Setup a MutationObserver to watch for dynamically added email fields
+      var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+            for (var i = 0; i < mutation.addedNodes.length; i++) {
+              var node = mutation.addedNodes[i];
+              // Check if the node is an element
+              if (node.nodeType === 1) {
+                // If it's an email input itself
+                if (node.tagName === 'INPUT' && node.type === 'email') {
+                  attachEmailListener(node);
+                }
+                // Check for any email inputs within the added node
+                var emailInputs = node.querySelectorAll('input[type="email"]');
+                emailInputs.forEach(attachEmailListener);
+              }
+            }
+          }
+        });
+      });
+      
+      // Start observing the entire document
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
+    
+    // Function to attach input event listeners to email fields
+    function attachEmailListener(emailField) {
+      emailField.addEventListener('input', function(event) {
+        var email = event.target.value.toLowerCase();
+        if (email && email.includes('@')) {
+          identify({ email: email });
+        }
+      });
+    }
+    
     function bindEvents() {
       // Click events
       document.addEventListener("click", function (event) {
@@ -179,6 +229,31 @@ var _hsq = (window._hsq = window._hsq || []);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       xhr.send(JSON.stringify(data));
     }
+    
+    function getCookie(name) {
+      var value = "; " + document.cookie;
+      var parts = value.split("; " + name + "=");
+      if (parts.length > 1) return parts[1].split(";")[0];
+      return null;
+    }
+    
+    // Hubspot cookie check logic
+    var hubspotCookieInterval;
+    
+    function checkHubspotCookie() {
+      var hubspotutk = getCookie('hubspotutk');
+      if (hubspotutk) {
+        identify({ hubspotutk: hubspotutk });
+        if (hubspotCookieInterval) {
+          clearInterval(hubspotCookieInterval);
+        }
+      } else {
+        // If not found, set up an interval to check for it
+        if (!hubspotCookieInterval) {
+          hubspotCookieInterval = setInterval(checkHubspotCookie, 1000);
+        }
+      }
+    }
 
     function identify(params) {
       var xhr = new XMLHttpRequest();
@@ -201,9 +276,14 @@ var _hsq = (window._hsq = window._hsq || []);
       sendData("event", data);
     }
 
+    // Expose the getter function for other scripts
+    window.getVisitorUUID = function() {
+      return uuid;
+    };
+
     return {
       init: init,
-      trackEvent: trackEvent, // Expose the new function
+      trackEvent: trackEvent,
       identify: identify,
     };
   })();

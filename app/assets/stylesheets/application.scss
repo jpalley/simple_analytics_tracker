@@ -1,3 +1,6 @@
+// Import our fixes for Bootstrap deprecation warnings
+@import 'bootstrap_fixes';
+
 // Import Bootstrap and its dependencies
 @import 'bootstrap/scss/bootstrap';
 @import 'bootstrap-icons/font/bootstrap-icons';
