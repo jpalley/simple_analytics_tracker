@@ -1,0 +1,78 @@
+<% content_for :title, "#{@table.table_id} Schema - BigQuery Explorer" %>
+
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h2 class="mb-0"><%= @table.table_id %> Schema</h2>
+    <div>
+      <%= link_to "Sample Data", table_data_bigquery_explorer_path(table_id: @table.table_id), class: "btn btn-outline-info me-2" %>
+      <%= link_to "Back to Tables", bigquery_explorer_path, class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+  <div class="card-body">
+    <h4>Table Details</h4>
+    <dl class="row mb-4">
+      <dt class="col-sm-3">Table Name</dt>
+      <dd class="col-sm-9"><%= @table.table_id %></dd>
+      
+      <dt class="col-sm-3">Full ID</dt>
+      <dd class="col-sm-9"><%= "#{@table.project_id}.#{@table.dataset_id}.#{@table.table_id}" %></dd>
+      
+      <% if @table.description.present? %>
+        <dt class="col-sm-3">Description</dt>
+        <dd class="col-sm-9"><%= @table.description %></dd>
+      <% end %>
+      
+      <dt class="col-sm-3">Created</dt>
+      <dd class="col-sm-9"><%= @table.created_at&.strftime("%Y-%m-%d %H:%M:%S UTC") || "Unknown" %></dd>
+      
+      <dt class="col-sm-3">Last Modified</dt>
+      <dd class="col-sm-9"><%= @table.modified_at&.strftime("%Y-%m-%d %H:%M:%S UTC") || "Unknown" %></dd>
+      
+      <dt class="col-sm-3">Estimated Rows</dt>
+      <dd class="col-sm-9"><%= number_with_delimiter(@table.rows_count || 0) %></dd>
+      
+      <dt class="col-sm-3">Size</dt>
+      <dd class="col-sm-9"><%= number_to_human_size(@table.bytes_count || 0) %></dd>
+    </dl>
+
+    <h4>Schema</h4>
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered">
+        <thead class="table-primary">
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Mode</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if @schema.present? %>
+            <% @schema.fields.each do |field| %>
+              <tr>
+                <td><strong><%= field.name %></strong></td>
+                <td><%= format_bigquery_type(field.type) %></td>
+                <td><%= format_bigquery_mode(field.mode || "NULLABLE") %></td>
+                <td><%= field.description || "-" %></td>
+              </tr>
+              <% if field.fields.present? && field.fields.any? %>
+                <% field.fields.each do |nested_field| %>
+                  <tr>
+                    <td class="ps-4"><em><%= field.name %>.<%= nested_field.name %></em></td>
+                    <td><%= format_bigquery_type(nested_field.type) %></td>
+                    <td><%= format_bigquery_mode(nested_field.mode || "NULLABLE") %></td>
+                    <td><%= nested_field.description || "-" %></td>
+                  </tr>
+                <% end %>
+              <% end %>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="4" class="text-center">No schema information available.</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div> 

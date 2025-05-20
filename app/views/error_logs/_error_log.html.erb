@@ -1,21 +1,14 @@
 <div id="<%= dom_id error_log %>" class="card mb-3">
   <div class="card-body">
-    <h5 class="card-title"><%= error_log.error_type %></h5>
+    <h5 class="card-title"><%= error_log.title %></h5>
     
     <div class="card-text">
       <p><strong>Created at:</strong> <%= error_log.created_at.strftime("%Y-%m-%d %H:%M:%S") %></p>
       
-      <% if error_log.message.present? %>
+      <% if error_log.body.present? %>
         <div class="mb-3">
-          <h6 class="text-muted">Message:</h6>
-          <pre class="bg-light p-3 rounded"><%= error_log.message %></pre>
-        </div>
-      <% end %>
-      
-      <% if error_log.backtrace.present? %>
-        <div class="mb-3">
-          <h6 class="text-muted">Backtrace:</h6>
-          <pre class="bg-light p-3 rounded small" style="max-height: 200px; overflow-y: auto;"><%= error_log.backtrace %></pre>
+          <h6 class="text-muted">Details:</h6>
+          <pre class="bg-light p-3 rounded"><%= error_log.body %></pre>
         </div>
       <% end %>
     </div>

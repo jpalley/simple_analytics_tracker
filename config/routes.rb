@@ -26,6 +26,12 @@ Rails.application.routes.draw do
     end
   end
 
+  # BigQuery Explorer routes
+  get "bigquery_explorer", to: "bigquery_explorer#index", as: :bigquery_explorer
+  get "bigquery_explorer/table_schema", to: "bigquery_explorer#table_schema", as: :table_schema_bigquery_explorer
+  get "bigquery_explorer/table_data", to: "bigquery_explorer#table_data", as: :table_data_bigquery_explorer
+  get "bigquery_explorer/query", to: "bigquery_explorer#query", as: :query_bigquery_explorer
+
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker

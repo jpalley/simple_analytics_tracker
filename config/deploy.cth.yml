@@ -26,6 +26,11 @@ env:
   secret:
     - SECRET_KEY_BASE
     - POSTGRES_PASSWORD
+    - RAILS_MASTER_KEY
+    - GOOGLE_CLOUD_CREDENTIALS
+    - HUBSPOT_ACCESS_TOKEN
+    - SENDGRID_API_KEY
+    - FACEBOOK_TOKEN
 
 
     # Set number of processes dedicated to Solid Queue (default: 1)

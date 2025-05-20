@@ -70,7 +70,6 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
-  gem "rails-controller-testing"
 end
 
 gem "google-cloud-bigquery", "~> 1.50.0"
@@ -84,4 +83,4 @@ gem "httparty", "~> 0.22.0"
 
 gem "facebookbusiness", "~> 21.0"
 
-gem "pg", "~> 1.1"
+gem "paper_trail", "~> 16.0"

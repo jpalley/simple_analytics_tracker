@@ -1,0 +1,51 @@
+<% content_for :title, "#{@table.table_id} Sample Data - BigQuery Explorer" %>
+
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h2 class="mb-0"><%= @table.table_id %> Sample Data</h2>
+    <div>
+      <%= link_to "View Schema", table_schema_bigquery_explorer_path(table_id: @table.table_id), class: "btn btn-outline-primary me-2" %>
+      <%= link_to "Back to Tables", bigquery_explorer_path, class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+  <div class="card-body">
+    <h4>Preview (First 10 rows)</h4>
+    
+    <% if @data.present? && @data.count > 0 %>
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+          <thead class="table-primary">
+            <tr>
+              <% @data.fields.each do |field| %>
+                <th><%= field.name %></th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <% @data.each do |row| %>
+              <tr>
+                <% @data.fields.each do |field| %>
+                  <td><%= format_bigquery_value(row[field.name]) %></td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      
+      <p class="mt-3 text-muted">
+        Showing <%= @data.count %> rows. To explore more data, use the custom query feature.
+      </p>
+    <% else %>
+      <div class="alert alert-info">
+        This table appears to be empty or there was an error retrieving the data.
+      </div>
+    <% end %>
+    
+    <div class="d-flex justify-content-end mt-3">
+      <%= link_to "Run Custom Query", query_bigquery_explorer_path(
+        query: "SELECT * FROM `#{@dataset_id}.#{@table.table_id}` LIMIT 100"
+      ), class: "btn btn-primary" %>
+    </div>
+  </div>
+</div> 

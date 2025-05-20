@@ -60,11 +60,11 @@ class ErrorLogsController < AdminController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_error_log
-      @error_log = ErrorLog.find(params.expect(:id))
+      @error_log = ErrorLog.find(params.require(:id))
     end
 
     # Only allow a list of trusted parameters through.
     def error_log_params
-      params.expect(error_log: [ :title, :body ])
+      params.require(:error_log).permit(:title, :body)
     end
 end

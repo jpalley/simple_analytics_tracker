@@ -17,7 +17,7 @@ class FacebookSyncsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create facebook_sync" do
     assert_difference("FacebookSync.count") do
-      post facebook_syncs_url, params: { facebook_sync: { event_name: @facebook_sync.event_name, event_value: @facebook_sync.event_value, last_counter: @facebook_sync.last_counter, table_name: @facebook_sync.table_name } }
+      post facebook_syncs_url, params: { facebook_sync: { event_name: @facebook_sync.event_name, event_value: @facebook_sync.event_value, last_counter: @facebook_sync.last_counter, table_name: @facebook_sync.table_name, event_source_url: @facebook_sync.event_source_url } }
     end
 
     assert_redirected_to facebook_sync_url(FacebookSync.last)
@@ -34,7 +34,7 @@ class FacebookSyncsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update facebook_sync" do
-    patch facebook_sync_url(@facebook_sync), params: { facebook_sync: { event_name: @facebook_sync.event_name, event_value: @facebook_sync.event_value, last_counter: @facebook_sync.last_counter, table_name: @facebook_sync.table_name } }
+    patch facebook_sync_url(@facebook_sync), params: { facebook_sync: { event_name: @facebook_sync.event_name, event_value: @facebook_sync.event_value, last_counter: @facebook_sync.last_counter, table_name: @facebook_sync.table_name, event_source_url: @facebook_sync.event_source_url } }
     assert_redirected_to facebook_sync_url(@facebook_sync)
   end
 

@@ -192,6 +192,7 @@ class HubspotBigquerySyncJob < ApplicationJob
 
         if object_config[:legacy]
           # Legacy APIs don't natively support incremental sync
+          Rails.logger.info("Legacy sync for #{object_type}")
           response = hubspot_client.send("get_#{object_type}", limit: batch_limit, offset: offset)
           records = process_legacy_response(response, object_type)
           offset = response["offset"] || response.offset if response.respond_to?(:offset) || response.respond_to?(:[])
@@ -200,15 +201,18 @@ class HubspotBigquerySyncJob < ApplicationJob
           # If doing incremental sync, filter records by updated_at
           if last_sync_time.present?
             # Filter records that were updated after last sync time
+            Rails.logger.info("Filtering #{object_type} records updated after #{last_sync_time}")
             records = filter_updated_records(records, last_sync_time, object_type)
           end
         else
           # Modern APIs support fetching recently updated records
           if last_sync_time.present? && object_config[:supports_incremental]
             # For incremental sync, use the updated_after parameter
+            Rails.logger.info("Incremental sync for #{object_type} since #{last_sync_time}")
             response = hubspot_client.send("get_#{object_type}", limit: batch_limit, after: after, updated_after: last_sync_time)
           else
             # For full sync
+            Rails.logger.info("Full sync for #{object_type}")
             response = hubspot_client.send("get_#{object_type}", limit: batch_limit, after: after)
           end
 

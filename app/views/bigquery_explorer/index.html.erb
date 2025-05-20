@@ -1,0 +1,49 @@
+<% content_for :title, "BigQuery Explorer" %>
+
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h2 class="mb-0">BigQuery Explorer</h2>
+    <%= link_to "Run Custom Query", query_bigquery_explorer_path, class: "btn btn-primary" %>
+  </div>
+  <div class="card-body">
+    <h4>Dataset: <%= @dataset_id %></h4>
+
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Available Tables</h5>
+          </div>
+          <div class="card-body">
+            <% if @tables.any? %>
+              <div class="list-group">
+                <% @tables.each do |table| %>
+                  <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5 class="mb-1"><%= table.table_id %></h5>
+                      <% if table.description.present? %>
+                        <p class="mb-1 text-muted"><%= table.description %></p>
+                      <% end %>
+                      <p class="mb-1 small">
+                        <% if table.created_at %>Created: <%= table.created_at.strftime("%Y-%m-%d %H:%M") %><% end %>
+                        <% if table.modified_at %> | Last modified: <%= table.modified_at.strftime("%Y-%m-%d %H:%M") %><% end %>
+                      </p>
+                    </div>
+                    <div>
+                      <%= link_to "Schema", table_schema_bigquery_explorer_path(table_id: table.table_id), class: "btn btn-sm btn-outline-primary me-2" %>
+                      <%= link_to "Sample Data", table_data_bigquery_explorer_path(table_id: table.table_id), class: "btn btn-sm btn-outline-info" %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="alert alert-info">
+                No tables found in this dataset.
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

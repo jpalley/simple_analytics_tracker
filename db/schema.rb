@@ -37,7 +37,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_12_021940) do
 
   create_table "facebook_sync_histories", force: :cascade do |t|
     t.integer "conversions"
-    t.integer "facebook_sync_id"
+    t.bigint "facebook_sync_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["facebook_sync_id"], name: "index_facebook_sync_histories_on_facebook_sync_id"
@@ -86,8 +86,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_12_021940) do
     t.datetime "synced_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.datetime "hubspot_synced_at"
-    t.index ["hubspot_synced_at"], name: "index_people_on_hubspot_synced_at"
     t.index ["synced"], name: "index_people_on_synced"
     t.index ["synced_at"], name: "index_people_on_synced_at"
   end

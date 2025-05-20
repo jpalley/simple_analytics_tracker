@@ -5,9 +5,11 @@ one:
   event_name: MyString
   event_value: MyString
   last_counter: MyString
+  event_source_url: https://example.com
 
 two:
   table_name: MyString
   event_name: MyString
   event_value: MyString
   last_counter: MyString
+  event_source_url: https://example.org
