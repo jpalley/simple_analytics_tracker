@@ -27,8 +27,7 @@ class HubspotSyncJob < ApplicationJob
       if utk && response[utk]
         person.properties["hubspot_contact_id"] = response[utk]["vid"]
       end
-      person.hubspot_synced_at = Time.current
-      person.save!
+      person.update_column(:hubspot_synced_at, Time.current)
     end
   end
 

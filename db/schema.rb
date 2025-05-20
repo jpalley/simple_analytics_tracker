@@ -10,7 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_12_07_071418) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_12_021940) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
+
   create_table "error_logs", force: :cascade do |t|
     t.string "title"
     t.text "body"
@@ -27,6 +30,8 @@ ActiveRecord::Schema[8.0].define(version: 2024_12_07_071418) do
     t.datetime "synced_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["synced"], name: "index_events_on_synced"
+    t.index ["synced_at"], name: "index_events_on_synced_at"
     t.index ["uuid"], name: "index_events_on_uuid"
   end
 
@@ -82,6 +87,9 @@ ActiveRecord::Schema[8.0].define(version: 2024_12_07_071418) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "hubspot_synced_at"
+    t.index ["hubspot_synced_at"], name: "index_people_on_hubspot_synced_at"
+    t.index ["synced"], name: "index_people_on_synced"
+    t.index ["synced_at"], name: "index_people_on_synced_at"
   end
 
   add_foreign_key "events", "people", column: "uuid", primary_key: "uuid"

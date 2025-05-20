@@ -1,16 +1,8 @@
-# PostgreSQL. Versions 9.3 and up are supported.
+# SQLite. Versions 3.8.0 and up are supported.
+#   gem install sqlite3
 #
-# Install the pg driver:
-#   gem install pg
-# On macOS with Homebrew:
-#   gem install pg -- --with-pg-config=/usr/local/bin/pg_config
-# On Windows:
-#   gem install pg
-#       Choose the win32 build.
-#       Install PostgreSQL and put its /bin directory on your path.
-#
-# Configure Using Gemfile
-# gem "pg"
+#   Ensure the SQLite 3 gem is defined in your Gemfile
+#   gem "sqlite3"
 #
 default: &default
   adapter: postgresql
@@ -23,17 +15,29 @@ default: &default
   username: postgres
   password: <%= ENV["POSTGRES_PASSWORD"] %>
   <% end %>
-
-
+  
 development:
-  <<: *default
-  database: simple_analytics_tracker_development
+  primary: &primary_development
+    <<: *default
+    database: simple_analytics_development
+  cache:
+    <<: *primary_development
+    database: simple_analytics_development_cache
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *primary_development
+    database: simple_analytics_development_queue
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *primary_development
+    database: simple_analytics_development_cable
+    migrations_paths: db/cable_migrate
 
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.
   # When left blank, PostgreSQL will use the default role. This is
   # the same name as the operating system user running Rails.
-  #username: simple_analytics_tracker
+  #username: test1
 
   # The password associated with the PostgreSQL role (username).
   #password:
@@ -61,7 +65,7 @@ development:
 # Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: simple_analytics_tracker_test
+  database: simple_analytics_test
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -86,18 +90,18 @@ test:
 production:
   primary: &primary_production
     <<: *default
-    database: simple_analytics_tracker_production
-    username: simple_analytics_tracker
-    password: <%= ENV["SIMPLE_ANALYTICS_TRACKER_DATABASE_PASSWORD"] %>
+    database: simple_analytics_production
+    username: postgres
+    password: <%= ENV["POSTGRES_PASSWORD"] %>
   cache:
     <<: *primary_production
-    database: simple_analytics_tracker_production_cache
+    database: simple_analytics_production_cache
     migrations_paths: db/cache_migrate
   queue:
     <<: *primary_production
-    database: simple_analytics_tracker_production_queue
+    database: simple_analytics_production_queue
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
-    database: simple_analytics_tracker_production_cable
+    database: simple_analytics_production_cable
     migrations_paths: db/cable_migrate

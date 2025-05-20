@@ -4,8 +4,8 @@ source "https://rubygems.org"
 gem "rails", "~> 8.0.0"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
-# Use sqlite3 as the database for Active Record
-gem "sqlite3", ">= 2.1"
+# Use pg as the database for Active Record
+gem "pg", "~> 1.1"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
@@ -34,7 +34,7 @@ gem "solid_cable"
 gem "bootsnap", require: false
 
 # Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
-gem "kamal", ">= 2.0.0.rc2", require: false
+gem "kamal"
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
@@ -70,17 +70,18 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
-  gem "mocha", require: false
   gem "rails-controller-testing"
 end
 
 gem "google-cloud-bigquery", "~> 1.50.0"
 gem "hubspot-api-client", "~> 16.0.0"  # Official Hubspot API Client
 gem "groupdate", "~> 6.5.1"
-gem "mission_control-jobs", "~> 0.5.0"
+gem "mission_control-jobs"
 gem "browser", "~> 6.0.0"
 gem "rack-cors"
 
 gem "httparty", "~> 0.22.0"
 
 gem "facebookbusiness", "~> 21.0"
+
+gem "pg", "~> 1.1"

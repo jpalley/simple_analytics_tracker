@@ -1,5 +1,3 @@
-
-
 # Deploy to these servers.
 servers:
   web:
@@ -24,6 +22,9 @@ env:
     ERROR_NOTIFICATION_EMAIL: jonathan@clevertinyhomes.com
     SENDGRID_FROM_EMAIL: hello@clevertinyhomes.com
     FACEBOOK_PIXEL_ID: 651217262831156
+    DB_HOST: simple-analytics-database
+  secret:
+    - POSTGRES_PASSWORD
 
 
     # Set number of processes dedicated to Solid Queue (default: 1)
@@ -57,6 +58,44 @@ volumes:
 #   user: app
 
 # Use accessory services (secrets come from .kamal/secrets).
+accessories:
+  database:
+    service: simple-analytics-database
+    image: postgres:16.9
+    host: 209.38.6.16
+    port: "127.0.0.1:5432:5432"
+    env:
+      clear:
+        DB_HOST: 127.0.0.1
+        DB_PORT: 5432
+        POSTGRES_USER: postgres
+        POSTGRES_DB: simple_analytics_production
+      secret:
+        - POSTGRES_PASSWORD
+    files:
+      - config/postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    directories:
+      - /mnt/volume_sfo3_01/simple_analytics_postgres:/var/lib/postgresql/data
+  # https://mileswoodroffe.com/articles/kamal-database-backups
+  db_backup:
+    service: simple-analytics-db-backup
+    image: eeshugerman/postgres-backup-s3:16
+    host: 209.38.6.16
+    env:
+      clear:
+        SCHEDULE: "@daily"
+        BACKUP_KEEP_DAYS: 90
+        S3_REGION: auto
+        S3_BUCKET: postgres-backup
+        S3_PREFIX: simple_analytics_production
+        S3_ENDPOINT: https://e2f7bebd765a1c87b31e836b08f0713d.r2.cloudflarestorage.com
+        POSTGRES_HOST: simple-analytics-database
+        POSTGRES_DATABASE: simple_analytics_production
+        POSTGRES_USER: postgres
+        S3_ACCESS_KEY_ID: a1ade455c837ce5f1cbdd441b0d0fb65
+      secret:
+        - POSTGRES_PASSWORD
+        - S3_SECRET_ACCESS_KEY:CF_POSTGRES_BACKUP_SECRET_ACCESS_KEY
 # accessories:
 #   db:
 #     image: mysql:8.0
