@@ -24,6 +24,7 @@ env:
     FACEBOOK_PIXEL_ID: 651217262831156
     DB_HOST: simple-analytics-database
   secret:
+    - SECRET_KEY_BASE
     - POSTGRES_PASSWORD
 
 
