@@ -8,7 +8,6 @@
 #     command: "SoftDeletedRecord.due.delete_all"
 #     priority: 2
 #     schedule: at 5am every day
-
 production:
   facebook_sync:
     class: FacebookSyncJob
@@ -22,9 +21,9 @@ production:
   data_cleanup:
     class: DataCleanupJob
     schedule: every day at 2am
-  # hubspot_sync:
-  #   class: HubspotSyncJob
-  #   schedule: every 60 minutes
+  hubspot_sync:
+    class: HubspotSyncJob
+    schedule: every 60 minutes
   # hubspot_bigquery_sync:
   #   class: HubspotBigquerySyncJob
   #   schedule: every 3 hours
@@ -41,4 +40,3 @@ production:
   #   class: HubspotBigquerySyncJob
   #   args: ["engagements"]
   #   schedule: every 8 hours
-t
