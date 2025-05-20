@@ -87,8 +87,6 @@ production:
   primary: &primary_production
     <<: *default
     database: simple_analytics_tracker_production
-    username: simple_analytics_tracker
-    password: <%= ENV["SIMPLE_ANALYTICS_TRACKER_DATABASE_PASSWORD"] %>
   cache:
     <<: *primary_production
     database: simple_analytics_tracker_production_cache
