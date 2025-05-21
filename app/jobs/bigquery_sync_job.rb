@@ -81,8 +81,8 @@ class BigquerySyncJob < ApplicationJob
           return
         else
           # Update persons as synced
-          person_ids = persons_batch.map(&:id)
-          Person.where(id: person_ids).update_all(synced: true, synced_at: Time.current)
+          person_ids = persons_batch.map(&:uuid)
+          Person.where(uuid: person_ids).update_all(synced: true, synced_at: Time.current)
         end
       end
     end
