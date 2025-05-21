@@ -15,10 +15,22 @@ class HubspotSyncStatus < ApplicationRecord
   scope :in_progress, -> { where(status: "in_progress") }
 
   def self.create_or_update(attributes)
-    status = find_or_initialize_by(object_type: attributes[:object_type])
-    status.assign_attributes(attributes)
-    status.save!
-    status
+    # For "in_progress" status, always create a new record to start tracking a new sync attempt
+    if attributes[:status] == "in_progress"
+      create!(attributes)
+    else
+      # For success/error statuses, find the most recent in_progress record for this object type and update it
+      latest_sync = for_object(attributes[:object_type]).in_progress.order(created_at: :desc).first
+
+      if latest_sync
+        # Update the existing sync attempt with the final status
+        latest_sync.update!(attributes)
+        latest_sync
+      else
+        # If no in_progress record exists (shouldn't happen in normal operation), create a new one
+        create!(attributes)
+      end
+    end
   end
 
   def self.last_successful_sync(object_type)

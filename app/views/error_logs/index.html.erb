@@ -5,7 +5,16 @@
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h1 class="mb-0">Error logs</h1>
-    <%= link_to "New error log", new_error_log_path, class: "btn btn-primary" %>
+    <div>
+      <% if @error_logs.any? %>
+        <%= button_to "Delete All Logs", destroy_all_error_logs_path, 
+            method: :delete, 
+            class: "btn btn-danger me-2", 
+            data: { confirm: "Are you sure? This will delete all #{@error_logs.count} error logs." },
+            form: { class: "d-inline" } %>
+      <% end %>
+      <%= link_to "New error log", new_error_log_path, class: "btn btn-primary" %>
+    </div>
   </div>
   <div class="card-body">
     <div id="error_logs">

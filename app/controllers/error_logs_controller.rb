@@ -57,6 +57,17 @@ class ErrorLogsController < AdminController
     end
   end
 
+  # DELETE /error_logs/destroy_all
+  def destroy_all
+    count = ErrorLog.count
+    ErrorLog.destroy_all
+
+    respond_to do |format|
+      format.html { redirect_to error_logs_path, status: :see_other, notice: "#{count} error logs were successfully deleted." }
+      format.json { head :no_content }
+    end
+  end
+
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_error_log

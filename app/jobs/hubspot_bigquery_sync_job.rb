@@ -28,7 +28,7 @@ class HubspotBigquerySyncJob < ApplicationJob
     deals: { id_field: "id", batch_size: 100, supports_incremental: true },
     tickets: { id_field: "id", batch_size: 100, supports_incremental: true },
     owners: { id_field: "id", batch_size: 100, supports_incremental: false },
-    engagements: { id_field: "id", batch_size: 100, legacy: true, supports_incremental: true },
+    engagements: { id_field: "id", batch_size: 250, legacy: true, supports_incremental: true },
     deal_pipelines: { id_field: "id", batch_size: 100, single_batch: true, supports_incremental: false },
     deal_stages: { id_field: "id", batch_size: 100, single_batch: true, supports_incremental: false },
     workflows: { id_field: "id", batch_size: 50, legacy: true, supports_incremental: false },
@@ -109,7 +109,7 @@ class HubspotBigquerySyncJob < ApplicationJob
 
   private
 
-  def log_error(title, message)
+  def log_error(title, message, tempfile_content = nil)
     if Rails.env.development?
       # Just log to console in development
       Rails.logger.error("#{title}: #{message}")
@@ -120,6 +120,11 @@ class HubspotBigquerySyncJob < ApplicationJob
         Rails.logger.debug("- Token length: #{ENV['HUBSPOT_ACCESS_TOKEN'].to_s.length}")
       end
     else
+      # Append tempfile content to the message if available
+      if tempfile_content.present?
+        message = "#{message}\n\nTempfile Content Sample (first 5000 chars):\n#{tempfile_content[0..5000]}"
+      end
+
       # Create ErrorLog record in production (which will trigger email)
       ErrorLog.create(title: title, body: message)
     end
@@ -424,13 +429,16 @@ class HubspotBigquerySyncJob < ApplicationJob
       end
       tempfile.flush
 
+      # Read tempfile content for error reporting if needed
+      tempfile_content = File.read(tempfile.path)
+
       # Load the data into BigQuery
       load_job = table.load_job tempfile, format: :json
       load_job.wait_until_done!
 
       if load_job.failed?
-        error_message = "Failed to load #{object_type} data to BigQuery: #{load_job.error.inspect}"
-        log_error("Hubspot BigQuery Sync Error - #{object_type}", error_message)
+        error_message = "Failed to load #{object_type} data to BigQuery: #{load_job.error.inspect}\n#{load_job.errors&.inspect}"
+        log_error("Hubspot BigQuery Sync Error - #{object_type}", error_message, tempfile_content)
       end
     end
   end
