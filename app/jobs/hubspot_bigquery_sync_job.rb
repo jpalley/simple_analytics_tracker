@@ -34,8 +34,10 @@ class HubspotBigquerySyncJob < ApplicationJob
     workflows: { id_field: "id", batch_size: 50, legacy: true, supports_incremental: false },
     properties: { id_field: "name", batch_size: 100, single_batch: true, property_groups: [ "contacts", "companies", "deals", "tickets" ], supports_incremental: false },
     lists: { id_field: "listId", batch_size: 30, legacy: true, supports_incremental: false },
-    call_records: { id_field: "id", batch_size: 40, legacy: true, supports_incremental: true },
-    meetings: { id_field: "id", batch_size: 50, supports_incremental: true }
+    calls: { id_field: "id", batch_size: 40, supports_incremental: true },
+    emails: { id_field: "id", batch_size: 40, supports_incremental: true },
+    meetings: { id_field: "id", batch_size: 50, supports_incremental: true },
+    notes: { id_field: "id", batch_size: 40, supports_incremental: true }
   }
 
   def perform(object_type = nil, full_sync: false)
@@ -269,6 +271,14 @@ class HubspotBigquerySyncJob < ApplicationJob
       update_time = case object_type
       when :engagements
                       Time.at(record[:updated_at].to_i / 1000) if record[:updated_at]
+      when :calls, :emails, :meetings, :notes
+                      if record["properties"] && record["properties"]["hs_lastmodifieddate"]
+                        # Handle millisecond timestamps from HubSpot
+                        Time.at(record["properties"]["hs_lastmodifieddate"].to_i / 1000)
+                      else
+                        # Fallback to the updatedAt field
+                        Time.at(record["updatedAt"].to_i / 1000) if record["updatedAt"]
+                      end
       else
                       # Try standard fields
                       if record["updatedAt"]
@@ -354,10 +364,20 @@ class HubspotBigquerySyncJob < ApplicationJob
         list_data = list.is_a?(Hash) ? list : list.to_hash
         list_data
       end
-    when :call_records
+    when :calls
       response.results.map do |call|
         call_data = call.is_a?(Hash) ? call : call.to_hash
         call_data
+      end
+    when :emails
+      response.results.map do |email|
+        email_data = email.is_a?(Hash) ? email : email.to_hash
+        email_data
+      end
+    when :notes
+      response.results.map do |note|
+        note_data = note.is_a?(Hash) ? note : note.to_hash
+        note_data
       end
     else
       response["results"] || []
@@ -762,6 +782,13 @@ class HubspotBigquerySyncJob < ApplicationJob
     puts "Updating schema for #{object_type} before sync"
 
     begin
+      # Special handling for properties object type - skip trying to use the Properties API
+      if object_type.to_sym == :properties
+        Rails.logger.info("Properties object type detected - using direct schema approach")
+        puts "Properties object type detected - using direct schema approach"
+        return update_schema_from_sample(object_type, table, dataset, bigquery)
+      end
+
       # Instead of extracting properties from a sample record, directly fetch all
       # available properties for this object type from the Hubspot Properties API
       hubspot_object_type = case object_type.to_sym
@@ -773,7 +800,7 @@ class HubspotBigquerySyncJob < ApplicationJob
                               "deals"
       when :tickets
                               "tickets"
-      when :engagements, :call_records, :meetings
+      when :engagements, :calls, :emails, :meetings, :notes
                               # These don't have direct property APIs
                               nil
       else
@@ -921,6 +948,56 @@ class HubspotBigquerySyncJob < ApplicationJob
   def update_schema_from_sample(object_type, table, dataset, bigquery)
     puts "Falling back to sample record approach for #{object_type}"
 
+    # Special handling for properties object type
+    if object_type.to_sym == :properties
+      # For properties, we'll create a basic schema without sample data
+      Rails.logger.info("Creating basic schema for properties without sample data")
+      puts "Creating basic schema for properties without sample data"
+
+      # Basic schema for properties
+      schema_updates = {
+        "name" => { type: "STRING", mode: "NULLABLE" },
+        "label" => { type: "STRING", mode: "NULLABLE" },
+        "description" => { type: "STRING", mode: "NULLABLE" },
+        "group_name" => { type: "STRING", mode: "NULLABLE" },
+        "type" => { type: "STRING", mode: "NULLABLE" },
+        "field_type" => { type: "STRING", mode: "NULLABLE" },
+        "object_type" => { type: "STRING", mode: "NULLABLE" },
+        "options" => { type: "STRING", mode: "NULLABLE" },
+        "created_at" => { type: "TIMESTAMP", mode: "NULLABLE" },
+        "updated_at" => { type: "TIMESTAMP", mode: "NULLABLE" },
+        "synced_at" => { type: "TIMESTAMP", mode: "NULLABLE" }
+      }
+
+      # Get existing fields
+      existing_fields = collect_existing_fields(table.schema.fields).map(&:downcase)
+
+      # Find fields to add
+      fields_to_add = schema_updates.keys.select { |key| !existing_fields.include?(key.downcase) }
+
+      if fields_to_add.empty?
+        Rails.logger.info("No new fields to add to properties schema")
+        puts "No new fields to add to properties schema"
+        return
+      end
+
+      Rails.logger.info("Adding #{fields_to_add.size} new fields to properties schema")
+      puts "Adding #{fields_to_add.size} new fields to properties schema"
+
+      # Update the table schema
+      table.schema do |schema|
+        fields_to_add.each do |field_name|
+          field_info = schema_updates[field_name]
+          add_field_to_schema(schema, field_name, field_info)
+        end
+      end
+
+      Rails.logger.info("Successfully created basic schema for properties")
+      puts "Successfully created basic schema for properties"
+      return
+    end
+
+    # For other object types, proceed with the original approach
     # Get a sample record from Hubspot
     response = hubspot_client.send("get_#{object_type}", limit: 1)
 

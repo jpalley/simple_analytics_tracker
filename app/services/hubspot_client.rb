@@ -16,8 +16,10 @@ class HubspotClient
     :workflows,
     :properties,
     :lists,
-    :call_records,
-    :meetings
+    :calls,
+    :emails,
+    :meetings,
+    :notes
   ]
 
   # Rate limits for different types of endpoints
@@ -28,7 +30,9 @@ class HubspotClient
     properties: { limit: 100, window: 10 },
     lists: { limit: 30, window: 10 },     # Lists API has stricter limits
     calls: { limit: 40, window: 10 },
-    meetings: { limit: 50, window: 10 }
+    emails: { limit: 40, window: 10 },
+    meetings: { limit: 50, window: 10 },
+    notes: { limit: 40, window: 10 }
   }
 
   def initialize
@@ -254,6 +258,7 @@ class HubspotClient
   end
 
   def get_engagements(limit: 250, offset: 0)
+    Rails.logger.warn("Using legacy engagements API - consider using specific engagement type methods instead")
     with_rate_limiting(:default) do
       # Using the legacy engagements API as it's not fully available in the CRM API
       response = HTTParty.get("https://api.hubapi.com/engagements/v1/engagements/paged?limit=#{limit}&offset=#{offset}", {
@@ -351,63 +356,211 @@ class HubspotClient
     end
   end
 
-  def get_call_records(limit: 40, offset: 0)
+  def get_call_records(limit: 40, after: nil, updated_after: nil)
+    Rails.logger.warn("get_call_records method is deprecated - use get_calls instead")
+    get_calls(limit: limit, after: after, updated_after: updated_after)
+  end
+
+  def get_calls(limit: 40, after: nil, updated_after: nil)
     with_rate_limiting(:calls) do
-      response = HTTParty.get("https://api.hubapi.com/calling/v1/calls?limit=#{limit}&offset=#{offset}", {
+      url = "https://api.hubapi.com/crm/v3/objects/calls"
+
+      # Build query parameters
+      params = {
+        limit: limit,
+        properties: "*"  # Get all properties
+      }
+
+      # Add cursor-based pagination
+      params[:after] = after if after.present?
+
+      # Add filtering for incremental sync if needed
+      if updated_after.present?
+        timestamp = Time.parse(updated_after).to_i * 1000
+        filter_json = {
+          filterGroups: [
+            {
+              filters: [
+                {
+                  propertyName: "hs_lastmodifieddate",
+                  operator: "GTE",
+                  value: timestamp.to_s
+                }
+              ]
+            }
+          ]
+        }.to_json
+        params[:filter] = filter_json
+      end
+
+      # Execute the API call
+      response = HTTParty.get(url, {
+        query: params,
         headers: {
-          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}"
+          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}",
+          "Content-Type" => "application/json"
         }
       })
+
       raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
 
-      # Transform to match our standard format
-      results = response.parsed_response["results"] || []
-      has_more = response.parsed_response["hasMore"] || false
-      offset = response.parsed_response["offset"] if has_more
-
+      # Format the response to match our standard structure
       OpenStruct.new(
-        results: results,
-        paging: has_more ?
-          OpenStruct.new(
-            next: OpenStruct.new(
-              after: offset.to_s
-            )
-          ) : nil,
-        hasMore: has_more
+        results: response.parsed_response["results"] || [],
+        paging: normalize_paging(response.parsed_response["paging"])
+      )
+    end
+  end
+
+  def get_emails(limit: 40, after: nil, updated_after: nil)
+    with_rate_limiting(:emails) do
+      url = "https://api.hubapi.com/crm/v3/objects/emails"
+
+      # Build query parameters
+      params = {
+        limit: limit,
+        properties: "*"  # Get all properties
+      }
+
+      # Add cursor-based pagination
+      params[:after] = after if after.present?
+
+      # Add filtering for incremental sync if needed
+      if updated_after.present?
+        timestamp = Time.parse(updated_after).to_i * 1000
+        filter_json = {
+          filterGroups: [
+            {
+              filters: [
+                {
+                  propertyName: "hs_lastmodifieddate",
+                  operator: "GTE",
+                  value: timestamp.to_s
+                }
+              ]
+            }
+          ]
+        }.to_json
+        params[:filter] = filter_json
+      end
+
+      # Execute the API call
+      response = HTTParty.get(url, {
+        query: params,
+        headers: {
+          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}",
+          "Content-Type" => "application/json"
+        }
+      })
+
+      raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
+
+      # Format the response to match our standard structure
+      OpenStruct.new(
+        results: response.parsed_response["results"] || [],
+        paging: normalize_paging(response.parsed_response["paging"])
       )
     end
   end
 
   def get_meetings(limit: 50, after: nil, updated_after: nil)
     with_rate_limiting(:meetings) do
-      # Using the CRM API for meetings
-      url = "https://api.hubapi.com/crm/v3/objects/meetings?limit=#{limit}"
-      url += "&after=#{after}" if after
-      # Add hs_lastmodifieddate filter for incremental sync
-      if updated_after
-        # Convert ISO8601 string to millisecond timestamp for Hubspot
+      url = "https://api.hubapi.com/crm/v3/objects/meetings"
+
+      # Build query parameters
+      params = {
+        limit: limit,
+        properties: "*"  # Get all properties
+      }
+
+      # Add cursor-based pagination
+      params[:after] = after if after.present?
+
+      # Add filtering for incremental sync
+      if updated_after.present?
         timestamp = Time.parse(updated_after).to_i * 1000
-        url += "&filterGroups=[{\"filters\":[{\"propertyName\":\"hs_lastmodifieddate\",\"operator\":\"GTE\",\"value\":#{timestamp}}]}]"
+        filter_json = {
+          filterGroups: [
+            {
+              filters: [
+                {
+                  propertyName: "hs_lastmodifieddate",
+                  operator: "GTE",
+                  value: timestamp.to_s
+                }
+              ]
+            }
+          ]
+        }.to_json
+        params[:filter] = filter_json
       end
 
-      # Add all properties
-      url += "&properties=*"
-
+      # Execute the API call
       response = HTTParty.get(url, {
+        query: params,
         headers: {
-          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}"
+          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}",
+          "Content-Type" => "application/json"
         }
       })
+
       raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
 
-      # Transform to match our standard format
-      results = response.parsed_response["results"] || []
-      paging = response.parsed_response["paging"] ?
-        normalize_paging(response.parsed_response["paging"]) : nil
-
+      # Format the response to match our standard structure
       OpenStruct.new(
-        results: results,
-        paging: paging
+        results: response.parsed_response["results"] || [],
+        paging: normalize_paging(response.parsed_response["paging"])
+      )
+    end
+  end
+
+  def get_notes(limit: 40, after: nil, updated_after: nil)
+    with_rate_limiting(:notes) do
+      url = "https://api.hubapi.com/crm/v3/objects/notes"
+
+      # Build query parameters
+      params = {
+        limit: limit,
+        properties: "*"  # Get all properties
+      }
+
+      # Add cursor-based pagination
+      params[:after] = after if after.present?
+
+      # Add filtering for incremental sync
+      if updated_after.present?
+        timestamp = Time.parse(updated_after).to_i * 1000
+        filter_json = {
+          filterGroups: [
+            {
+              filters: [
+                {
+                  propertyName: "hs_lastmodifieddate",
+                  operator: "GTE",
+                  value: timestamp.to_s
+                }
+              ]
+            }
+          ]
+        }.to_json
+        params[:filter] = filter_json
+      end
+
+      # Execute the API call
+      response = HTTParty.get(url, {
+        query: params,
+        headers: {
+          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}",
+          "Content-Type" => "application/json"
+        }
+      })
+
+      raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
+
+      # Format the response to match our standard structure
+      OpenStruct.new(
+        results: response.parsed_response["results"] || [],
+        paging: normalize_paging(response.parsed_response["paging"])
       )
     end
   end
