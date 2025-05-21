@@ -22,7 +22,8 @@ class HubspotClient
 
   # Rate limits for different types of endpoints
   RATE_LIMITS = {
-    default: { limit: 100, window: 10 }, # 100 requests per 10 seconds for most endpoints
+    default: { limit: 150, window: 10 }, # 150 requests per 10 seconds for most endpoints
+    search: { limit: 50, window: 10 },  # Search endpoints limited to 5 requests per second
     workflows: { limit: 50, window: 10 }, # More conservative rate for workflows
     properties: { limit: 100, window: 10 },
     lists: { limit: 30, window: 10 },     # Lists API has stricter limits
@@ -60,115 +61,159 @@ class HubspotClient
     result
   end
 
-  def get_contacts(limit: 100, after: nil, updated_after: nil)
-    with_rate_limiting(:default) do
-      if updated_after
-        # Use search endpoint with updated timestamp filter
+  def get_contacts(limit: nil, after: nil, updated_after: nil)
+    if updated_after
+      # Use search endpoint with updated timestamp filter (max 200)
+      limit = limit || 200
+      limit = [limit, 200].min
+
+      with_rate_limiting(:search) do
         filter = {
           propertyName: "lastmodifieddate",
           operator: "GTE",
           value: updated_after
         }
-        response = @client.crm.contacts.search_api.do_search({
-          limit: limit,
-          after: after,
-          filters: [ filter ],
-          sorts: [ { propertyName: "lastmodifieddate", direction: "ASCENDING" } ],
-          properties: [ "*" ] # Fetch all properties
-        })
-      else
-        # Standard pagination with all properties
+        response = @client.crm.contacts.search_api.do_search(
+          public_object_search_request: {
+            limit: limit,
+            after: after,
+            filters: [ filter ],
+            sorts: [ { propertyName: "lastmodifieddate", direction: "ASCENDING" } ],
+            properties: [ "*" ] # Fetch all properties
+          }
+        )
+        normalize_response(response)
+      end
+    else
+      # Standard pagination with all properties (max 100)
+      limit = limit || 100
+      limit = [limit, 100].min
+
+      with_rate_limiting(:default) do
         response = @client.crm.contacts.basic_api.get_page(
           limit: limit,
           after: after,
           properties: [ "*" ] # Fetch all properties
         )
+        normalize_response(response)
       end
-      normalize_response(response)
     end
   end
 
-  def get_companies(limit: 100, after: nil, updated_after: nil)
-    with_rate_limiting(:default) do
-      if updated_after
-        # Use search endpoint with updated timestamp filter
+  def get_companies(limit: nil, after: nil, updated_after: nil)
+    if updated_after
+      # Use search endpoint with updated timestamp filter (max 200)
+      limit = limit || 200
+      limit = [limit, 200].min
+
+      with_rate_limiting(:search) do
         filter = {
           propertyName: "hs_lastmodifieddate",
           operator: "GTE",
           value: updated_after
         }
-        response = @client.crm.companies.search_api.do_search({
-          limit: limit,
-          after: after,
-          filters: [ filter ],
-          sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
-          properties: [ "*" ] # Fetch all properties
-        })
-      else
-        # Standard pagination with all properties
+        response = @client.crm.companies.search_api.do_search(
+          public_object_search_request: {
+            limit: limit,
+            after: after,
+            filters: [ filter ],
+            sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
+            properties: [ "*" ] # Fetch all properties
+          }
+        )
+        normalize_response(response)
+      end
+    else
+      # Standard pagination with all properties (max 100)
+      limit = limit || 100
+      limit = [limit, 100].min
+
+      with_rate_limiting(:default) do
         response = @client.crm.companies.basic_api.get_page(
           limit: limit,
           after: after,
           properties: [ "*" ] # Fetch all properties
         )
+        normalize_response(response)
       end
-      normalize_response(response)
     end
   end
 
-  def get_deals(limit: 100, after: nil, updated_after: nil)
-    with_rate_limiting(:default) do
-      if updated_after
-        # Use search endpoint with updated timestamp filter
+  def get_deals(limit: nil, after: nil, updated_after: nil)
+    if updated_after
+      # Use search endpoint with updated timestamp filter (max 200)
+      limit = limit || 200
+      limit = [limit, 200].min
+
+      with_rate_limiting(:search) do
         filter = {
           propertyName: "hs_lastmodifieddate",
           operator: "GTE",
           value: updated_after
         }
-        response = @client.crm.deals.search_api.do_search({
-          limit: limit,
-          after: after,
-          filters: [ filter ],
-          sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
-          properties: [ "*" ] # Fetch all properties
-        })
-      else
-        # Standard pagination with all properties
+        response = @client.crm.deals.search_api.do_search(
+          public_object_search_request: {
+            limit: limit,
+            after: after,
+            filters: [ filter ],
+            sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
+            properties: [ "*" ] # Fetch all properties
+          }
+        )
+        normalize_response(response)
+      end
+    else
+      # Standard pagination with all properties (max 100)
+      limit = limit || 100
+      limit = [limit, 100].min
+
+      with_rate_limiting(:default) do
         response = @client.crm.deals.basic_api.get_page(
           limit: limit,
           after: after,
           properties: [ "*" ] # Fetch all properties
         )
+        normalize_response(response)
       end
-      normalize_response(response)
     end
   end
 
-  def get_tickets(limit: 100, after: nil, updated_after: nil)
-    with_rate_limiting(:default) do
-      if updated_after
-        # Use search endpoint with updated timestamp filter
+  def get_tickets(limit: nil, after: nil, updated_after: nil)
+    if updated_after
+      # Use search endpoint with updated timestamp filter (max 200)
+      limit = limit || 200
+      limit = [limit, 200].min
+
+      with_rate_limiting(:search) do
         filter = {
           propertyName: "hs_lastmodifieddate",
           operator: "GTE",
           value: updated_after
         }
-        response = @client.crm.tickets.search_api.do_search({
-          limit: limit,
-          after: after,
-          filters: [ filter ],
-          sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
-          properties: [ "*" ] # Fetch all properties
-        })
-      else
-        # Standard pagination with all properties
+        response = @client.crm.tickets.search_api.do_search(
+          public_object_search_request: {
+            limit: limit,
+            after: after,
+            filters: [ filter ],
+            sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
+            properties: [ "*" ] # Fetch all properties
+          }
+        )
+        normalize_response(response)
+      end
+    else
+      # Standard pagination with all properties (max 100)
+      limit = limit || 100
+      limit = [limit, 100].min
+
+      with_rate_limiting(:default) do
         response = @client.crm.tickets.basic_api.get_page(
           limit: limit,
           after: after,
           properties: [ "*" ] # Fetch all properties
         )
+        normalize_response(response)
       end
-      normalize_response(response)
     end
   end
 
@@ -208,7 +253,7 @@ class HubspotClient
     end
   end
 
-  def get_engagements(limit: 100, offset: 0)
+  def get_engagements(limit: 250, offset: 0)
     with_rate_limiting(:default) do
       # Using the legacy engagements API as it's not fully available in the CRM API
       response = HTTParty.get("https://api.hubapi.com/engagements/v1/engagements/paged?limit=#{limit}&offset=#{offset}", {

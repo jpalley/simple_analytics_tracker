@@ -198,7 +198,7 @@ class HubspotBigquerySyncJob < ApplicationJob
         if object_config[:legacy]
           # Legacy APIs don't natively support incremental sync
           Rails.logger.info("Legacy sync for #{object_type}")
-          response = hubspot_client.send("get_#{object_type}", limit: batch_limit, offset: offset)
+          response = hubspot_client.send("get_#{object_type}", offset: offset)
           records = process_legacy_response(response, object_type)
           offset = response["offset"] || response.offset if response.respond_to?(:offset) || response.respond_to?(:[])
           has_more = response["hasMore"] || response.hasMore || false if response.respond_to?(:hasMore) || response.respond_to?(:[])
@@ -214,11 +214,11 @@ class HubspotBigquerySyncJob < ApplicationJob
           if last_sync_time.present? && object_config[:supports_incremental]
             # For incremental sync, use the updated_after parameter
             Rails.logger.info("Incremental sync for #{object_type} since #{last_sync_time}")
-            response = hubspot_client.send("get_#{object_type}", limit: batch_limit, after: after, updated_after: last_sync_time)
+            response = hubspot_client.send("get_#{object_type}",  after: after, updated_after: last_sync_time)
           else
             # For full sync
             Rails.logger.info("Full sync for #{object_type}")
-            response = hubspot_client.send("get_#{object_type}", limit: batch_limit, after: after)
+            response = hubspot_client.send("get_#{object_type}",  after: after)
           end
 
           # Check if response is structured as expected
