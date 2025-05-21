@@ -34,10 +34,10 @@ class HubspotBigquerySyncJob < ApplicationJob
     workflows: { id_field: "id", batch_size: 50, legacy: true, supports_incremental: false },
     properties: { id_field: "name", batch_size: 100, single_batch: true, property_groups: [ "contacts", "companies", "deals", "tickets" ], supports_incremental: false },
     lists: { id_field: "listId", batch_size: 30, legacy: true, supports_incremental: false },
-    calls: { id_field: "id", batch_size: 40, supports_incremental: true },
-    emails: { id_field: "id", batch_size: 40, supports_incremental: true },
-    meetings: { id_field: "id", batch_size: 50, supports_incremental: true },
-    notes: { id_field: "id", batch_size: 40, supports_incremental: true }
+    calls: { id_field: "id", batch_size: 100, supports_incremental: true },
+    emails: { id_field: "id", batch_size: 100, supports_incremental: true },
+    meetings: { id_field: "id", batch_size: 100, supports_incremental: true },
+    notes: { id_field: "id", batch_size: 100, supports_incremental: true }
   }
 
   def perform(object_type = nil, full_sync: false)
@@ -659,6 +659,9 @@ class HubspotBigquerySyncJob < ApplicationJob
 
   def infer_bigquery_type(value, field_name = nil)
     return "TIMESTAMP" if field_name&.end_with?("_ts")
+
+    # Special case for metadata_threadId which can be a string hash
+    return "STRING" if field_name == "metadata_threadId"
 
     case value
     when Integer
