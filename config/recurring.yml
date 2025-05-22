@@ -24,10 +24,10 @@ production:
   hubspot_sync:
     class: HubspotSyncJob
     schedule: every 60 minutes
-  # hubspot_bigquery_sync:
-  #   class: HubspotBigquerySyncJob
-  #   schedule: every 3 hours
-  # # Individual object syncs to distribute load
+  hubspot_bigquery_sync:
+    class: HubspotBigquerySyncJob
+    schedule: every 6 hours
+  # Individual object syncs to distribute load
   # hubspot_core_sync:
   #   class: HubspotBigquerySyncJob
   #   args: ["contacts"]

@@ -19,7 +19,8 @@ class HubspotClient
     :calls,
     :emails,
     :meetings,
-    :notes
+    :notes,
+    :leads
   ]
 
   # Rate limits for different types of endpoints
@@ -32,7 +33,8 @@ class HubspotClient
     calls: { limit: 40, window: 10 },
     emails: { limit: 40, window: 10 },
     meetings: { limit: 50, window: 10 },
-    notes: { limit: 40, window: 10 }
+    notes: { limit: 40, window: 10 },
+    leads: { limit: 100, window: 10 }
   }
 
   def initialize
@@ -215,6 +217,47 @@ class HubspotClient
           limit: limit,
           after: after,
           properties: [ "*" ] # Fetch all properties
+        )
+        normalize_response(response)
+      end
+    end
+  end
+
+  def get_leads(limit: nil, after: nil, updated_after: nil)
+    if updated_after
+      # Use search endpoint with updated timestamp filter (max 200)
+      limit = limit || 200
+      limit = [limit, 200].min
+
+      with_rate_limiting(:search) do
+        filter = {
+          propertyName: "hs_lastmodifieddate",
+          operator: "GTE",
+          value: updated_after
+        }
+        response = @client.crm.objects.search_api.do_search(
+          object_type: "leads",
+          public_object_search_request: {
+            limit: limit,
+            after: after,
+            filters: [ filter ],
+            sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
+            properties: [ "*" ] # Fetch all properties
+          }
+        )
+        normalize_response(response)
+      end
+    else
+      # Standard pagination with all properties (max 100)
+      limit = limit || 100
+      limit = [limit, 100].min
+
+      with_rate_limiting(:leads) do
+        response = @client.crm.objects.basic_api.get_page(
+          object_type: "leads",
+          limit: limit,
+          after: after,
+          properties: [ "*" ]
         )
         normalize_response(response)
       end
