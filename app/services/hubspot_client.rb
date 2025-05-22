@@ -567,16 +567,31 @@ class HubspotClient
   def with_rate_limiting(endpoint_type = :default)
     manager = @rate_limit_managers[endpoint_type] || @rate_limit_managers[:default]
     manager.wait_if_needed
-    response = yield
-    manager.record_request
-    response
-  rescue => e
-    if e.message.include?("too many requests") || (e.respond_to?(:response) && e.response&.code == 429)
-      Rails.logger.warn("Hubspot rate limit hit for #{endpoint_type}, retrying after delay")
-      sleep(10)
-      retry
-    else
-      raise e
+
+    max_retries = 3
+    retry_count = 0
+    base_delay = 2 # seconds
+
+    begin
+      response = yield
+      manager.record_request
+      response
+    rescue => e
+      manager.record_request
+
+      if e.message.include?("too many requests") || (e.respond_to?(:response) && e.response&.code == 429)
+        Rails.logger.warn("Hubspot rate limit hit for #{endpoint_type}, retrying after delay")
+        sleep(10)
+        retry
+      elsif (e.respond_to?(:response) && e.response&.code.to_s.start_with?("4")) && retry_count < max_retries
+        retry_count += 1
+        delay = base_delay ** retry_count
+        Rails.logger.warn("Hubspot API returned 4xx error for #{endpoint_type}, retry #{retry_count}/#{max_retries} after #{delay} seconds: #{e.message}")
+        sleep(delay)
+        retry
+      else
+        raise e
+      end
     end
   end
 
