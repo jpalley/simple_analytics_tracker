@@ -421,6 +421,17 @@ class HubspotBigquerySyncJob < ApplicationJob
       # For CRM objects, extract all properties from the properties hash
       expanded_record = expand_properties(record_hash, object_type)
 
+      # CRITICAL FIX: Ensure every record has an ID field by mapping from the object's ID field
+      if !expanded_record.key?("id") && HUBSPOT_OBJECTS.key?(object_type)
+        id_field = HUBSPOT_OBJECTS[object_type][:id_field]
+        if expanded_record.key?(id_field)
+          expanded_record["id"] = expanded_record[id_field]
+          Rails.logger.info("Added missing 'id' field for #{object_type} using #{id_field}") if Rails.env.development?
+        else
+          Rails.logger.warn("Record for #{object_type} is missing both 'id' and '#{id_field}' fields")
+        end
+      end
+
       # In development, debug the expanded record as well
       if Rails.env.development? && records.index(record) == 0
         debug("First expanded record keys: #{expanded_record.keys.join(', ')}")
@@ -527,6 +538,17 @@ class HubspotBigquerySyncJob < ApplicationJob
       end
     end
 
+    # CRITICAL FIX: Map the object's ID field to "id" if it's different
+    if expanded.is_a?(Hash) && HUBSPOT_OBJECTS.key?(object_type)
+      id_field = HUBSPOT_OBJECTS[object_type][:id_field]
+
+      # Only proceed if the ID field isn't already "id"
+      if id_field != "id" && expanded.key?(id_field)
+        # Copy the ID field value to "id"
+        expanded["id"] = expanded[id_field]
+      end
+    end
+
     expanded
   end
 
@@ -590,6 +612,12 @@ class HubspotBigquerySyncJob < ApplicationJob
     data = {}
     schema = {}
 
+    # CRITICAL FIX: Ensure the id field is included first if present
+    if attributes.is_a?(Hash) && attributes.key?("id")
+      data["id"] = attributes["id"]
+      schema["id"] = { type: infer_bigquery_type(attributes["id"], "id"), mode: "REQUIRED" }
+    end
+
     # First, handle the special case of Hubspot properties
     if attributes.is_a?(Hash) && attributes["properties"].is_a?(Hash) && parent_field.nil?
       # Directly include all properties at the top level
@@ -604,6 +632,8 @@ class HubspotBigquerySyncJob < ApplicationJob
     attributes.each do |key, value|
       # Skip "properties" since we already processed it
       next if key == "properties" && value.is_a?(Hash) && parent_field.nil?
+      # Skip "id" since we already processed it
+      next if key == "id" && parent_field.nil?
 
       current_field = parent_field ? "#{parent_field}.#{key}" : key.to_s
 
@@ -805,6 +835,8 @@ class HubspotBigquerySyncJob < ApplicationJob
                               "tickets"
       when :engagements, :calls, :emails, :meetings, :notes
                               # These don't have direct property APIs
+                              nil
+      when :deal_pipelines, :deal_stages
                               nil
       else
                               object_type.to_s.singularize
