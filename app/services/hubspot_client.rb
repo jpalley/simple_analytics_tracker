@@ -40,10 +40,58 @@ class HubspotClient
   def initialize
     @client = ::Hubspot::Client.new(access_token: ENV["HUBSPOT_ACCESS_TOKEN"])
     @rate_limit_managers = {}
+    @property_cache = {}
 
     # Initialize rate limit managers for each endpoint type
     RATE_LIMITS.each do |endpoint_type, config|
       @rate_limit_managers[endpoint_type] = RateLimitManager.new(config[:limit], config[:window])
+    end
+  end
+
+  # Get all property definitions for a given object type
+  def get_all_property_definitions(object_type)
+    # Return from cache if available
+    return @property_cache[object_type.to_s] if @property_cache[object_type.to_s]
+
+    # Convert symbol to string if needed
+    object_type_str = object_type.to_s
+
+    # For some objects, we need to adjust the object_type name
+    adjusted_type = case object_type_str
+    when "leads"
+                      "leads"
+    else
+                      object_type_str.end_with?("s") ? object_type_str : "#{object_type_str}s"
+    end
+
+    # Get all properties for this object type
+    begin
+      response = get_properties(object_type: adjusted_type)
+
+      # Extract property definitions from the response
+      property_definitions = {}
+      if response.respond_to?(:results) && response.results.is_a?(Array)
+        # Assuming response.results contains an array of property definition objects
+        response.results.each do |prop|
+          if prop.is_a?(Hash) && prop["name"]
+            property_definitions[prop["name"]] = prop
+          else
+            Rails.logger.warn("Skipping an invalid property structure in response for #{object_type}: #{prop.inspect}")
+          end
+        end
+      else
+        # Fallback if response format is unexpected
+        Rails.logger.warn("Unexpected response format from properties API for #{object_type}, expected results array.")
+      end
+
+      # Cache the result
+      @property_cache[object_type.to_s] = property_definitions
+
+      property_definitions
+    rescue => e
+      Rails.logger.error("Error fetching property definitions for #{object_type}: #{e.message}")
+      # Return empty hash as fallback
+      {}
     end
   end
 
@@ -68,199 +116,174 @@ class HubspotClient
   end
 
   def get_contacts(limit: nil, after: nil, updated_after: nil)
-    if updated_after
-      # Use search endpoint with updated timestamp filter (max 200)
-      limit = limit || 200
-      limit = [limit, 200].min
+    # Use search endpoint for both full and incremental syncs (max 200)
+    limit = limit || 200
+    limit = [ limit, 200 ].min
 
-      with_rate_limiting(:search) do
-        filter = {
+    with_rate_limiting(:search) do
+      # Get all available contact property names
+      all_property_names = get_all_property_definitions(:contacts).keys
+
+      # Build the search request
+      search_request = {
+        limit: limit,
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "lastmodifieddate", direction: "ASCENDING" } ]
+      }
+
+      # Add filter only if updated_after is provided
+      if updated_after
+        search_request[:filters] = [ {
           propertyName: "lastmodifieddate",
-          operator: "GTE",
+          operator: "GT",
           value: updated_after
-        }
-        response = @client.crm.contacts.search_api.do_search(
-          public_object_search_request: {
-            limit: limit,
-            after: after,
-            filters: [ filter ],
-            sorts: [ { propertyName: "lastmodifieddate", direction: "ASCENDING" } ],
-            properties: [ "*" ] # Fetch all properties
-          }
-        )
-        normalize_response(response)
+        } ]
       end
-    else
-      # Standard pagination with all properties (max 100)
-      limit = limit || 100
-      limit = [limit, 100].min
 
-      with_rate_limiting(:default) do
-        response = @client.crm.contacts.basic_api.get_page(
-          limit: limit,
-          after: after,
-          properties: [ "*" ] # Fetch all properties
-        )
-        normalize_response(response)
-      end
+      response = @client.crm.contacts.search_api.do_search(
+        public_object_search_request: search_request
+      )
+
+      normalize_response(response)
     end
   end
 
   def get_companies(limit: nil, after: nil, updated_after: nil)
-    if updated_after
-      # Use search endpoint with updated timestamp filter (max 200)
-      limit = limit || 200
-      limit = [limit, 200].min
+    # Use search endpoint for both full and incremental syncs (max 200)
+    limit = limit || 200
+    limit = [ limit, 200 ].min
 
-      with_rate_limiting(:search) do
-        filter = {
+    with_rate_limiting(:search) do
+      # Get all available company property names
+      all_property_names = get_all_property_definitions(:companies).keys
+
+      # Build the search request
+      search_request = {
+        limit: limit,
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
+      }
+
+      # Add filter only if updated_after is provided
+      if updated_after
+        search_request[:filters] = [ {
           propertyName: "hs_lastmodifieddate",
-          operator: "GTE",
+          operator: "GT",
           value: updated_after
-        }
-        response = @client.crm.companies.search_api.do_search(
-          public_object_search_request: {
-            limit: limit,
-            after: after,
-            filters: [ filter ],
-            sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
-            properties: [ "*" ] # Fetch all properties
-          }
-        )
-        normalize_response(response)
+        } ]
       end
-    else
-      # Standard pagination with all properties (max 100)
-      limit = limit || 100
-      limit = [limit, 100].min
 
-      with_rate_limiting(:default) do
-        response = @client.crm.companies.basic_api.get_page(
-          limit: limit,
-          after: after,
-          properties: [ "*" ] # Fetch all properties
-        )
-        normalize_response(response)
-      end
+      response = @client.crm.companies.search_api.do_search(
+        public_object_search_request: search_request
+      )
+
+      normalize_response(response)
     end
   end
 
   def get_deals(limit: nil, after: nil, updated_after: nil)
-    if updated_after
-      # Use search endpoint with updated timestamp filter (max 200)
-      limit = limit || 200
-      limit = [limit, 200].min
+    # Use search endpoint for both full and incremental syncs (max 200)
+    limit = limit || 200
+    limit = [ limit, 200 ].min
 
-      with_rate_limiting(:search) do
-        filter = {
+    with_rate_limiting(:search) do
+      # Get all available deal property names
+      all_property_names = get_all_property_definitions(:deals).keys
+
+      # Build the search request
+      search_request = {
+        limit: limit,
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
+      }
+
+      # Add filter only if updated_after is provided
+      if updated_after
+        search_request[:filters] = [ {
           propertyName: "hs_lastmodifieddate",
-          operator: "GTE",
+          operator: "GT",
           value: updated_after
-        }
-        response = @client.crm.deals.search_api.do_search(
-          public_object_search_request: {
-            limit: limit,
-            after: after,
-            filters: [ filter ],
-            sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
-            properties: [ "*" ] # Fetch all properties
-          }
-        )
-        normalize_response(response)
+        } ]
       end
-    else
-      # Standard pagination with all properties (max 100)
-      limit = limit || 100
-      limit = [limit, 100].min
 
-      with_rate_limiting(:default) do
-        response = @client.crm.deals.basic_api.get_page(
-          limit: limit,
-          after: after,
-          properties: [ "*" ] # Fetch all properties
-        )
-        normalize_response(response)
-      end
+      response = @client.crm.deals.search_api.do_search(
+        public_object_search_request: search_request
+      )
+
+      normalize_response(response)
     end
   end
 
   def get_tickets(limit: nil, after: nil, updated_after: nil)
-    if updated_after
-      # Use search endpoint with updated timestamp filter (max 200)
-      limit = limit || 200
-      limit = [limit, 200].min
+    # Use search endpoint for both full and incremental syncs (max 200)
+    limit = limit || 200
+    limit = [ limit, 200 ].min
 
-      with_rate_limiting(:search) do
-        filter = {
+    with_rate_limiting(:search) do
+      # Get all available ticket property names
+      all_property_names = get_all_property_definitions(:tickets).keys
+
+      # Build the search request
+      search_request = {
+        limit: limit,
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
+      }
+
+      # Add filter only if updated_after is provided
+      if updated_after
+        search_request[:filters] = [ {
           propertyName: "hs_lastmodifieddate",
-          operator: "GTE",
+          operator: "GT",
           value: updated_after
-        }
-        response = @client.crm.tickets.search_api.do_search(
-          public_object_search_request: {
-            limit: limit,
-            after: after,
-            filters: [ filter ],
-            sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
-            properties: [ "*" ] # Fetch all properties
-          }
-        )
-        normalize_response(response)
+        } ]
       end
-    else
-      # Standard pagination with all properties (max 100)
-      limit = limit || 100
-      limit = [limit, 100].min
 
-      with_rate_limiting(:default) do
-        response = @client.crm.tickets.basic_api.get_page(
-          limit: limit,
-          after: after,
-          properties: [ "*" ] # Fetch all properties
-        )
-        normalize_response(response)
-      end
+      response = @client.crm.tickets.search_api.do_search(
+        public_object_search_request: search_request
+      )
+
+      normalize_response(response)
     end
   end
 
   def get_leads(limit: nil, after: nil, updated_after: nil)
-    if updated_after
-      # Use search endpoint with updated timestamp filter (max 200)
-      limit = limit || 200
-      limit = [limit, 200].min
+    # Use search endpoint for both full and incremental syncs (max 200)
+    limit = limit || 200
+    limit = [ limit, 200 ].min
 
-      with_rate_limiting(:search) do
-        filter = {
+    with_rate_limiting(:search) do
+      # Get all available lead property names
+      all_property_names = get_all_property_definitions(:leads).keys
+
+      # Build the search request
+      search_request = {
+        limit: limit,
+        after: after,
+        filters: [],
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
+      }
+
+      # Add filter only if updated_after is provided
+      if updated_after
+        search_request[:filters] = [ {
           propertyName: "hs_lastmodifieddate",
-          operator: "GTE",
+          operator: "GT",
           value: updated_after
-        }
-        response = @client.crm.objects.search_api.do_search(
-          object_type: "leads",
-          public_object_search_request: {
-            limit: limit,
-            after: after,
-            filters: [ filter ],
-            sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ],
-            properties: [ "*" ] # Fetch all properties
-          }
-        )
-        normalize_response(response)
+        } ]
       end
-    else
-      # Standard pagination with all properties (max 100)
-      limit = limit || 100
-      limit = [limit, 100].min
 
-      with_rate_limiting(:leads) do
-        response = @client.crm.objects.basic_api.get_page(
-          object_type: "leads",
-          limit: limit,
-          after: after,
-          properties: [ "*" ]
-        )
-        normalize_response(response)
-      end
+      response = @client.crm.objects.search_api.do_search(
+        object_type: "leads",
+        public_object_search_request: search_request
+      )
+
+      normalize_response(response)
     end
   end
 
@@ -277,42 +300,6 @@ class HubspotClient
     end
   end
 
-  def get_deal_stages
-    with_rate_limiting(:default) do
-      # This endpoint gets all pipelines with their stages
-      pipelines = @client.crm.pipelines.pipelines_api.get_all(object_type: "deals")
-
-      # Extract all stages from all pipelines
-      stages = []
-      pipelines.results.each do |pipeline|
-        if pipeline.stages
-          pipeline.stages.each do |stage|
-            stage_data = stage.to_hash
-            stage_data[:pipeline_id] = pipeline.id
-            stage_data[:pipeline_label] = pipeline.label
-            stages << stage_data
-          end
-        end
-      end
-
-      # Return a structure similar to other endpoints
-      OpenStruct.new(results: stages)
-    end
-  end
-
-  def get_engagements(limit: 250, offset: 0)
-    Rails.logger.warn("Using legacy engagements API - consider using specific engagement type methods instead")
-    with_rate_limiting(:default) do
-      # Using the legacy engagements API as it's not fully available in the CRM API
-      response = HTTParty.get("https://api.hubapi.com/engagements/v1/engagements/paged?limit=#{limit}&offset=#{offset}", {
-        headers: {
-          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}"
-        }
-      })
-      raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
-      response.parsed_response
-    end
-  end
 
   def get_line_items(limit: 100, after: nil)
     with_rate_limiting(:default) do
@@ -404,207 +391,143 @@ class HubspotClient
     get_calls(limit: limit, after: after, updated_after: updated_after)
   end
 
-  def get_calls(limit: 40, after: nil, updated_after: nil)
-    with_rate_limiting(:calls) do
-      url = "https://api.hubapi.com/crm/v3/objects/calls"
+  def get_calls(limit: 200, after: nil, updated_after: nil)
+    # Use search endpoint for both full and incremental syncs (max 200)
+    limit = limit || 200
+    limit = [ limit, 200 ].min
 
-      # Build query parameters
-      params = {
+    with_rate_limiting(:search) do
+      # Get all available call property names
+      all_property_names = get_all_property_definitions(:calls).keys
+
+      # Build the search request
+      search_request = {
         limit: limit,
-        properties: "*"  # Get all properties
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
       }
 
-      # Add cursor-based pagination
-      params[:after] = after if after.present?
-
-      # Add filtering for incremental sync if needed
-      if updated_after.present?
-        timestamp = Time.parse(updated_after).to_i * 1000
-        filter_json = {
-          filterGroups: [
-            {
-              filters: [
-                {
-                  propertyName: "hs_lastmodifieddate",
-                  operator: "GTE",
-                  value: timestamp.to_s
-                }
-              ]
-            }
-          ]
-        }.to_json
-        params[:filter] = filter_json
+      # Add filter only if updated_after is provided
+      if updated_after
+        search_request[:filters] = [ {
+          propertyName: "hs_lastmodifieddate",
+          operator: "GT",
+          value: updated_after
+        } ]
       end
 
-      # Execute the API call
-      response = HTTParty.get(url, {
-        query: params,
-        headers: {
-          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}",
-          "Content-Type" => "application/json"
-        }
-      })
-
-      raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
-
-      # Format the response to match our standard structure
-      OpenStruct.new(
-        results: response.parsed_response["results"] || [],
-        paging: normalize_paging(response.parsed_response["paging"])
+      response = @client.crm.objects.search_api.do_search(
+        object_type: "calls",
+        public_object_search_request: search_request
       )
+
+      normalize_response(response)
     end
   end
 
-  def get_emails(limit: 40, after: nil, updated_after: nil)
-    with_rate_limiting(:emails) do
-      url = "https://api.hubapi.com/crm/v3/objects/emails"
+  def get_emails(limit: 200, after: nil, updated_after: nil)
+    # Use search endpoint for both full and incremental syncs (max 200)
+    limit = limit || 200
+    limit = [ limit, 200 ].min
 
-      # Build query parameters
-      params = {
+    with_rate_limiting(:search) do
+      # Get all available email property names
+      all_property_names = get_all_property_definitions(:emails).keys
+
+      # Build the search request
+      search_request = {
         limit: limit,
-        properties: "*"  # Get all properties
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
       }
 
-      # Add cursor-based pagination
-      params[:after] = after if after.present?
-
-      # Add filtering for incremental sync if needed
-      if updated_after.present?
-        timestamp = Time.parse(updated_after).to_i * 1000
-        filter_json = {
-          filterGroups: [
-            {
-              filters: [
-                {
-                  propertyName: "hs_lastmodifieddate",
-                  operator: "GTE",
-                  value: timestamp.to_s
-                }
-              ]
-            }
-          ]
-        }.to_json
-        params[:filter] = filter_json
+      # Add filter only if updated_after is provided
+      if updated_after
+        search_request[:filters] = [ {
+          propertyName: "hs_lastmodifieddate",
+          operator: "GT",
+          value: updated_after
+        } ]
       end
 
-      # Execute the API call
-      response = HTTParty.get(url, {
-        query: params,
-        headers: {
-          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}",
-          "Content-Type" => "application/json"
-        }
-      })
-
-      raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
-
-      # Format the response to match our standard structure
-      OpenStruct.new(
-        results: response.parsed_response["results"] || [],
-        paging: normalize_paging(response.parsed_response["paging"])
+      response = @client.crm.objects.search_api.do_search(
+        object_type: "emails",
+        public_object_search_request: search_request
       )
+
+      normalize_response(response)
     end
   end
 
-  def get_meetings(limit: 50, after: nil, updated_after: nil)
-    with_rate_limiting(:meetings) do
-      url = "https://api.hubapi.com/crm/v3/objects/meetings"
+  def get_meetings(limit: 200, after: nil, updated_after: nil)
+    # Use search endpoint for both full and incremental syncs (max 200)
+    limit = limit || 200
+    limit = [ limit, 200 ].min
 
-      # Build query parameters
-      params = {
+    with_rate_limiting(:search) do
+      # Get all available meeting property names
+      all_property_names = get_all_property_definitions(:meetings).keys
+
+      # Build the search request
+      search_request = {
         limit: limit,
-        properties: "*"  # Get all properties
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
       }
 
-      # Add cursor-based pagination
-      params[:after] = after if after.present?
-
-      # Add filtering for incremental sync
-      if updated_after.present?
-        timestamp = Time.parse(updated_after).to_i * 1000
-        filter_json = {
-          filterGroups: [
-            {
-              filters: [
-                {
-                  propertyName: "hs_lastmodifieddate",
-                  operator: "GTE",
-                  value: timestamp.to_s
-                }
-              ]
-            }
-          ]
-        }.to_json
-        params[:filter] = filter_json
+      # Add filter only if updated_after is provided
+      if updated_after
+        search_request[:filters] = [ {
+          propertyName: "hs_lastmodifieddate",
+          operator: "GT",
+          value: updated_after
+        } ]
       end
 
-      # Execute the API call
-      response = HTTParty.get(url, {
-        query: params,
-        headers: {
-          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}",
-          "Content-Type" => "application/json"
-        }
-      })
-
-      raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
-
-      # Format the response to match our standard structure
-      OpenStruct.new(
-        results: response.parsed_response["results"] || [],
-        paging: normalize_paging(response.parsed_response["paging"])
+      response = @client.crm.objects.search_api.do_search(
+        object_type: "meetings",
+        public_object_search_request: search_request
       )
+
+      normalize_response(response)
     end
   end
 
-  def get_notes(limit: 40, after: nil, updated_after: nil)
-    with_rate_limiting(:notes) do
-      url = "https://api.hubapi.com/crm/v3/objects/notes"
+  def get_notes(limit: 200, after: nil, updated_after: nil)
+    # Use search endpoint for both full and incremental syncs (max 200)
+    limit = limit || 200
+    limit = [ limit, 200 ].min
 
-      # Build query parameters
-      params = {
+    with_rate_limiting(:search) do
+      # Get all available note property names
+      all_property_names = get_all_property_definitions(:notes).keys
+
+      # Build the search request
+      search_request = {
         limit: limit,
-        properties: "*"  # Get all properties
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
       }
 
-      # Add cursor-based pagination
-      params[:after] = after if after.present?
-
-      # Add filtering for incremental sync
-      if updated_after.present?
-        timestamp = Time.parse(updated_after).to_i * 1000
-        filter_json = {
-          filterGroups: [
-            {
-              filters: [
-                {
-                  propertyName: "hs_lastmodifieddate",
-                  operator: "GTE",
-                  value: timestamp.to_s
-                }
-              ]
-            }
-          ]
-        }.to_json
-        params[:filter] = filter_json
+      # Add filter only if updated_after is provided
+      if updated_after
+        search_request[:filters] = [ {
+          propertyName: "hs_lastmodifieddate",
+          operator: "GT",
+          value: updated_after
+        } ]
       end
 
-      # Execute the API call
-      response = HTTParty.get(url, {
-        query: params,
-        headers: {
-          "Authorization" => "Bearer #{ENV['HUBSPOT_ACCESS_TOKEN']}",
-          "Content-Type" => "application/json"
-        }
-      })
-
-      raise "Hubspot API Error: #{response.parsed_response.inspect}" if !response.success?
-
-      # Format the response to match our standard structure
-      OpenStruct.new(
-        results: response.parsed_response["results"] || [],
-        paging: normalize_paging(response.parsed_response["paging"])
+      response = @client.crm.objects.search_api.do_search(
+        object_type: "notes",
+        public_object_search_request: search_request
       )
+
+      normalize_response(response)
     end
   end
 

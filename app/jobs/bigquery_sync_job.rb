@@ -45,30 +45,51 @@ class BigquerySyncJob < ApplicationJob
 
     # Select Person records that need to be upserted
     unsynced_persons = Person.where("synced IS NULL OR synced = ? OR synced_at IS NULL OR updated_at >= synced_at", false)
-    batch_size = 10_000 # Adjust as needed
 
-    unsynced_persons.find_in_batches(batch_size: batch_size) do |persons_batch|
-      # Prepare data and schema
+    if unsynced_persons.any?
+      # Generate temporary table name
+      temp_table_id = "persons_temp_#{Time.now.to_i}"
+      # Create temp table without expiration time
+      temp_table = dataset.create_table(temp_table_id)
+
+      # Set expiration time using ALTER TABLE
+      expiration_timestamp = (Time.now + 3600).utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+      alter_table_sql = <<~SQL
+        ALTER TABLE `#{dataset.dataset_id}.#{temp_table.table_id}`
+          SET OPTIONS (
+            expiration_timestamp = TIMESTAMP "#{expiration_timestamp}"
+        )
+      SQL
+
+      bigquery.query alter_table_sql
+
+      # Reload temp_table to get updated metadata
+      temp_table = dataset.table(temp_table.table_id)
+
       person_data = []
       person_schema = {}
 
-      persons_batch.each do |person|
+      unsynced_persons.find_each(batch_size: 10000) do |person|
         data, schema = flatten_attributes(person_attributes(person))
         person_data << data
         person_schema.merge!(schema) { |_key, old_val, new_val| merge_schemas(old_val, new_val) }
       end
 
-      # Update table schema to accommodate new fields
+      # Update schemas for both tables
+      update_table_schema(temp_table, person_schema)
       update_table_schema(persons_table, person_schema)
 
-      # Write data to temporary file
-      Tempfile.open(["persons", ".json"]) do |tempfile|
+      # Insert data into temp table
+
+      Tempfile.open([ "persons", ".json" ]) do |tempfile|
         person_data.each do |data_row|
-          tempfile.puts data_row.to_json
+          formatted_row = data_row
+          tempfile.puts formatted_row.to_json
         end
         tempfile.flush
 
-        load_job = persons_table.load_job tempfile, format: :json
+
+        load_job = temp_table.load_job tempfile, format: :json
         # Wait for the load job to complete
         load_job.wait_until_done!
 
@@ -79,12 +100,18 @@ class BigquerySyncJob < ApplicationJob
           )
           raise "Failed to load data into BigQuery. Job ID: #{job_id}, Error: #{load_job.error} | #{load_job.errors.inspect}"
           return
-        else
-          # Update persons as synced
-          person_ids = persons_batch.map(&:uuid)
-          Person.where(uuid: person_ids).update_all(synced: true, synced_at: Time.current)
         end
       end
+
+      puts "PERFORMING MERGE"
+      # Perform MERGE operation
+      merge_persons_table(bigquery, dataset, temp_table, persons_table, person_schema)
+
+      # Delete the temp table
+      temp_table.delete
+
+      # Update synced and synced_at
+      unsynced_persons.update_all(synced: true, synced_at: Time.current)
     end
   end
 
