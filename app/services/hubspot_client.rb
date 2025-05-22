@@ -150,7 +150,7 @@ class HubspotClient
 
     loop do
       # Development mode safety limit - only process 3 batches total
-      if Rails.env.development? && batch_count >= 3
+      if Rails.env.development? && batch_count >= 300
         Rails.logger.info("#{object_type}: Development mode - stopping after 3 batches")
         break
       end
@@ -196,8 +196,7 @@ class HubspotClient
 
         # Extract the last modified date from the last result
         last_result = results.last
-        last_modified_date = extract_last_modified_date(last_result, object_type)
-
+        last_modified_date = last_result&.updated_at
         if last_modified_date
           # Restart the search with the new updated_after filter
           current_updated_after = last_modified_date
@@ -224,49 +223,7 @@ class HubspotClient
     )
   end
 
-  # Extract the last modified date from a result based on object type
-  def extract_last_modified_date(result, object_type)
-    return nil unless result
 
-    # Convert to hash if it's an object
-    result_hash = result.is_a?(Hash) ? result : result.to_hash
-
-    # Try multiple paths to find a modification date
-    modification_date = nil
-
-    # Check in properties hash first (most common location)
-    if result_hash["properties"].is_a?(Hash)
-      case object_type
-      when :contacts
-        modification_date = result_hash["properties"]["lastmodifieddate"] ||
-                           result_hash["properties"]["hs_lastmodifieddate"]
-      else
-        modification_date = result_hash["properties"]["hs_lastmodifieddate"] ||
-                           result_hash["properties"]["lastmodifieddate"]
-      end
-    end
-
-    # If not found in properties, check at the top level
-    if modification_date.nil?
-      case object_type
-      when :contacts
-        modification_date = result_hash["lastmodifieddate"] ||
-                           result_hash["hs_lastmodifieddate"] ||
-                           result_hash["updatedAt"]
-      else
-        modification_date = result_hash["hs_lastmodifieddate"] ||
-                           result_hash["lastmodifieddate"] ||
-                           result_hash["updatedAt"]
-      end
-    end
-
-    # Log a warning if we couldn't find a modification date
-    if modification_date.nil?
-      Rails.logger.warn("#{object_type}: Could not find a last modified date in record: #{result_hash["id"]}")
-    end
-
-    modification_date
-  end
 
   # Individual search methods for each object type (extracted from main methods)
   def make_contacts_search(limit, after, updated_after)
@@ -288,6 +245,7 @@ class HubspotClient
         } ]
       end
 
+      puts "Search #{limit} #{after} #{updated_after}"
       response = @client.crm.contacts.search_api.do_search(
         public_object_search_request: search_request
       )
