@@ -200,16 +200,37 @@ class HubspotBigquerySyncJob < ApplicationJob
       records = get_object_records_single_batch(object_type)
       sync_records_to_bigquery(records, table, dataset, bigquery, object_type, schema)
     else
-      # For paginated objects
-      # Get the last sync time if we're doing an incremental sync
-      last_sync_time = nil
-      if !full_sync && object_config[:supports_incremental]
-        last_sync_time = get_last_sync_time(object_type)
-        Rails.logger.info("Incremental sync for #{object_type} since #{last_sync_time || 'never'}")
-        puts "Incremental sync for #{object_type} since #{last_sync_time || 'never'}"
-      end
+      # For paginated objects that now use the improved client methods
+      begin
+        # Get the last sync time if we're doing an incremental sync
+        last_sync_time = nil
+        if !full_sync && object_config[:supports_incremental]
+          last_sync_time = get_last_sync_time(object_type)
+          Rails.logger.info("Incremental sync for #{object_type} since #{last_sync_time || 'never'}")
+          puts "Incremental sync for #{object_type} since #{last_sync_time || 'never'}"
+        end
 
-      sync_paginated_records(object_type, object_config, table, dataset, bigquery, schema, last_sync_time)
+        # Call the HubSpot client - it now handles all pagination and 10k limit internally
+        Rails.logger.info("Fetching #{object_type} data from HubSpot")
+        response = hubspot_client.send("get_#{object_type}", updated_after: last_sync_time)
+
+        # Process the results
+        if response.respond_to?(:results) && response.results.present?
+          records = response.results
+          @records_processed = records.size
+          Rails.logger.info("Processing #{records.size} records for #{object_type}")
+          puts "Processing #{records.size} records for #{object_type}"
+          sync_records_to_bigquery(records, table, dataset, bigquery, object_type, schema)
+        else
+          Rails.logger.info("No records found for #{object_type}")
+          puts "No records found for #{object_type}"
+        end
+      rescue => e
+        error_message = "Error syncing #{object_type}: #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
+        puts "ERROR=======#{error_message}"
+        log_error("Hubspot BigQuery Sync Error - #{object_type}", error_message)
+        raise e unless Rails.env.production?
+      end
     end
 
     Rails.logger.info("Completed syncing #{object_type} - processed #{@records_processed} records")
@@ -228,84 +249,6 @@ class HubspotBigquerySyncJob < ApplicationJob
       nil
     end
   end
-
-  def sync_paginated_records(object_type, object_config, table, dataset, bigquery, schema, last_sync_time = nil)
-    after = nil
-    has_more = true
-    batch_counter = 0
-    offset = 0
-
-    # Collect all records first
-    all_records = []
-
-    while has_more
-      begin
-        batch_counter += 1
-        Rails.logger.info("Fetching #{object_type} batch ##{batch_counter} (after: #{after || offset})")
-        puts "Fetching #{object_type} batch ##{batch_counter} (after: #{after || offset})"
-        # Modern APIs support fetching recently updated records
-        if last_sync_time.present? && object_config[:supports_incremental]
-          # For incremental sync, use the updated_after parameter
-          Rails.logger.info("Incremental sync for #{object_type} since #{last_sync_time}")
-          puts "Incremental sync for #{object_type} since #{last_sync_time}"
-          response = hubspot_client.send("get_#{object_type}",  after: after, updated_after: last_sync_time)
-        else
-          # For full sync
-          Rails.logger.info("Full sync for #{object_type}")
-          puts "Full sync for #{object_type}"
-          response = hubspot_client.send("get_#{object_type}",  after: after)
-        end
-
-        # Check if response is structured as expected
-        if response.respond_to?(:results)
-          records = response.results
-        elsif response.is_a?(Hash) && response["results"]
-          records = response["results"]
-        else
-          Rails.logger.error("Unexpected response format for #{object_type}: #{response.class}")
-          records = []
-        end
-
-        # Get the next cursor for pagination (responses are now normalized)
-        after = response.paging&.next&.after if response.respond_to?(:paging)
-        has_more = after.present?
-
-        if records.present?
-          # Add to our collection instead of processing immediately
-          all_records.concat(records)
-          @records_processed += records.size
-        else
-          has_more = false
-        end
-
-        # Safety limit for development
-        if Rails.env.development? && batch_counter >= 3
-          Rails.logger.info("Development mode - stopping after 3 batches")
-          has_more = false
-        end
-
-        # Add a small delay between batches to avoid overloading the API
-        sleep(1) if has_more
-      rescue => e
-        error_message = "Error in batch ##{batch_counter} for #{object_type}: #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
-        puts "ERROR=======#{error_message}"
-        log_error("Hubspot BigQuery Sync Error - #{object_type} Batch ##{batch_counter}", error_message)
-        # Continue with next batch instead of failing the entire job
-        next
-      end
-    end
-
-    # After collecting all records, process them in a single operation
-    if all_records.present?
-      Rails.logger.info("Processing #{all_records.size} total records for #{object_type} in a single operation")
-      puts "Processing #{all_records.size} total records for #{object_type} in a single operation"
-      sync_records_to_bigquery(all_records, table, dataset, bigquery, object_type, schema)
-    else
-      Rails.logger.info("No records found for #{object_type}")
-      puts "No records found for #{object_type}"
-    end
-  end
-
 
   def get_object_records_single_batch(object_type)
     case object_type
@@ -492,7 +435,9 @@ class HubspotBigquerySyncJob < ApplicationJob
       # Production implementation - use the format manipulation that's known to work
       Google::Cloud::Bigquery.new(
         project: ENV["GOOGLE_CLOUD_PROJECT"],
-        credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+        credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n")),
+        timeout: 1200,
+        retries: 3
       )
     end
   rescue => e

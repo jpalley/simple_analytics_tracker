@@ -115,16 +115,164 @@ class HubspotClient
     result
   end
 
-  def get_contacts(limit: nil, after: nil, updated_after: nil)
-    # Use search endpoint for both full and incremental syncs (max 200)
+  # Helper method to handle HubSpot's 10k search result limit by restarting searches
+  # when approaching the limit using the last modified date
+  #
+  # HubSpot's search API has a hard limit of 10,000 results per search, even with pagination.
+  # This method works around this limitation by:
+  #
+  # 1. Performing normal pagination until we approach 9,000 results (safety buffer)
+  # 2. Extracting the lastmodifieddate from the final record
+  # 3. Starting a new search using that date as the updated_after filter
+  # 4. Repeating this process until no more results are found
+  #
+  # This allows us to fetch unlimited results while respecting HubSpot's API constraints.
+  # The method is transparent to callers - they receive all results as if it was one search.
+  #
+  # @param object_type [Symbol] The type of HubSpot object (:contacts, :deals, etc.)
+  # @param limit [Integer] Results per page (max 200)
+  # @param after [String] Pagination cursor for the first search
+  # @param updated_after [String] ISO8601 timestamp to filter results modified after this date
+  # @return [OpenStruct] Response with all results and no paging info
+  def search_with_10k_limit_handling(object_type, limit: nil, after: nil, updated_after: nil)
     limit = limit || 200
     limit = [ limit, 200 ].min
 
+    all_results = []
+    current_after = after
+    current_updated_after = updated_after
+    total_results_in_current_search = 0
+    search_restart_threshold = 9000 # Restart before hitting 10k limit
+    restart_count = 0
+    batch_count = 0 # Track total batches for development mode limit
+
+    Rails.logger.info("Starting search for #{object_type} with 10k limit handling. Initial updated_after: #{current_updated_after}")
+
+    loop do
+      # Development mode safety limit - only process 3 batches total
+      if Rails.env.development? && batch_count >= 3
+        Rails.logger.info("#{object_type}: Development mode - stopping after 3 batches")
+        break
+      end
+
+      batch_count += 1
+
+      # Make the search call for this object type
+      response = case object_type
+      when :contacts
+        make_contacts_search(limit, current_after, current_updated_after)
+      when :companies
+        make_companies_search(limit, current_after, current_updated_after)
+      when :deals
+        make_deals_search(limit, current_after, current_updated_after)
+      when :tickets
+        make_tickets_search(limit, current_after, current_updated_after)
+      when :leads
+        make_leads_search(limit, current_after, current_updated_after)
+      when :calls
+        make_calls_search(limit, current_after, current_updated_after)
+      when :emails
+        make_emails_search(limit, current_after, current_updated_after)
+      when :meetings
+        make_meetings_search(limit, current_after, current_updated_after)
+      when :notes
+        make_notes_search(limit, current_after, current_updated_after)
+      else
+        raise "Unsupported object type for search with 10k handling: #{object_type}"
+      end
+
+      results = response&.results || []
+      break if results.empty?
+
+      all_results.concat(results)
+      total_results_in_current_search += results.size
+
+      Rails.logger.debug("#{object_type}: Batch returned #{results.size} results. Total in current search: #{total_results_in_current_search}, Overall total: #{all_results.size}")
+
+      # Check if we need to restart the search due to approaching 10k limit
+      if total_results_in_current_search >= search_restart_threshold
+        restart_count += 1
+        Rails.logger.info("#{object_type}: Approaching 10k limit (#{total_results_in_current_search} results), restarting search ##{restart_count}")
+
+        # Extract the last modified date from the last result
+        last_result = results.last
+        last_modified_date = extract_last_modified_date(last_result, object_type)
+
+        if last_modified_date
+          # Restart the search with the new updated_after filter
+          current_updated_after = last_modified_date
+          current_after = nil # Reset pagination
+          total_results_in_current_search = 0
+          Rails.logger.info("#{object_type}: Restarting search ##{restart_count} from date: #{last_modified_date}")
+          next
+        else
+          Rails.logger.warn("#{object_type}: Could not extract last modified date, continuing with normal pagination")
+        end
+      end
+
+      # Continue with normal pagination
+      current_after = response.paging&.next&.after
+      break unless current_after
+    end
+
+    Rails.logger.info("#{object_type}: Completed search with #{restart_count} restarts. Total results: #{all_results.size}")
+
+    # Return response in the expected format
+    OpenStruct.new(
+      results: all_results,
+      paging: nil # No paging since we've collected all results
+    )
+  end
+
+  # Extract the last modified date from a result based on object type
+  def extract_last_modified_date(result, object_type)
+    return nil unless result
+
+    # Convert to hash if it's an object
+    result_hash = result.is_a?(Hash) ? result : result.to_hash
+
+    # Try multiple paths to find a modification date
+    modification_date = nil
+
+    # Check in properties hash first (most common location)
+    if result_hash["properties"].is_a?(Hash)
+      case object_type
+      when :contacts
+        modification_date = result_hash["properties"]["lastmodifieddate"] ||
+                           result_hash["properties"]["hs_lastmodifieddate"]
+      else
+        modification_date = result_hash["properties"]["hs_lastmodifieddate"] ||
+                           result_hash["properties"]["lastmodifieddate"]
+      end
+    end
+
+    # If not found in properties, check at the top level
+    if modification_date.nil?
+      case object_type
+      when :contacts
+        modification_date = result_hash["lastmodifieddate"] ||
+                           result_hash["hs_lastmodifieddate"] ||
+                           result_hash["updatedAt"]
+      else
+        modification_date = result_hash["hs_lastmodifieddate"] ||
+                           result_hash["lastmodifieddate"] ||
+                           result_hash["updatedAt"]
+      end
+    end
+
+    # Log a warning if we couldn't find a modification date
+    if modification_date.nil?
+      Rails.logger.warn("#{object_type}: Could not find a last modified date in record: #{result_hash["id"]}")
+    end
+
+    modification_date
+  end
+
+  # Individual search methods for each object type (extracted from main methods)
+  def make_contacts_search(limit, after, updated_after)
     with_rate_limiting(:search) do
-      # Get all available contact property names
       all_property_names = get_all_property_definitions(:contacts).keys
 
-      # Build the search request
       search_request = {
         limit: limit,
         after: after,
@@ -132,7 +280,6 @@ class HubspotClient
         sorts: [ { propertyName: "lastmodifieddate", direction: "ASCENDING" } ]
       }
 
-      # Add filter only if updated_after is provided
       if updated_after
         search_request[:filters] = [ {
           propertyName: "lastmodifieddate",
@@ -149,16 +296,10 @@ class HubspotClient
     end
   end
 
-  def get_companies(limit: nil, after: nil, updated_after: nil)
-    # Use search endpoint for both full and incremental syncs (max 200)
-    limit = limit || 200
-    limit = [ limit, 200 ].min
-
+  def make_companies_search(limit, after, updated_after)
     with_rate_limiting(:search) do
-      # Get all available company property names
       all_property_names = get_all_property_definitions(:companies).keys
 
-      # Build the search request
       search_request = {
         limit: limit,
         after: after,
@@ -166,7 +307,6 @@ class HubspotClient
         sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
       }
 
-      # Add filter only if updated_after is provided
       if updated_after
         search_request[:filters] = [ {
           propertyName: "hs_lastmodifieddate",
@@ -183,16 +323,10 @@ class HubspotClient
     end
   end
 
-  def get_deals(limit: nil, after: nil, updated_after: nil)
-    # Use search endpoint for both full and incremental syncs (max 200)
-    limit = limit || 200
-    limit = [ limit, 200 ].min
-
+  def make_deals_search(limit, after, updated_after)
     with_rate_limiting(:search) do
-      # Get all available deal property names
       all_property_names = get_all_property_definitions(:deals).keys
 
-      # Build the search request
       search_request = {
         limit: limit,
         after: after,
@@ -200,7 +334,6 @@ class HubspotClient
         sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
       }
 
-      # Add filter only if updated_after is provided
       if updated_after
         search_request[:filters] = [ {
           propertyName: "hs_lastmodifieddate",
@@ -217,16 +350,10 @@ class HubspotClient
     end
   end
 
-  def get_tickets(limit: nil, after: nil, updated_after: nil)
-    # Use search endpoint for both full and incremental syncs (max 200)
-    limit = limit || 200
-    limit = [ limit, 200 ].min
-
+  def make_tickets_search(limit, after, updated_after)
     with_rate_limiting(:search) do
-      # Get all available ticket property names
       all_property_names = get_all_property_definitions(:tickets).keys
 
-      # Build the search request
       search_request = {
         limit: limit,
         after: after,
@@ -234,7 +361,6 @@ class HubspotClient
         sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
       }
 
-      # Add filter only if updated_after is provided
       if updated_after
         search_request[:filters] = [ {
           propertyName: "hs_lastmodifieddate",
@@ -251,16 +377,10 @@ class HubspotClient
     end
   end
 
-  def get_leads(limit: nil, after: nil, updated_after: nil)
-    # Use search endpoint for both full and incremental syncs (max 200)
-    limit = limit || 200
-    limit = [ limit, 200 ].min
-
+  def make_leads_search(limit, after, updated_after)
     with_rate_limiting(:search) do
-      # Get all available lead property names
       all_property_names = get_all_property_definitions(:leads).keys
 
-      # Build the search request
       search_request = {
         limit: limit,
         after: after,
@@ -269,7 +389,6 @@ class HubspotClient
         sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
       }
 
-      # Add filter only if updated_after is provided
       if updated_after
         search_request[:filters] = [ {
           propertyName: "hs_lastmodifieddate",
@@ -285,6 +404,138 @@ class HubspotClient
 
       normalize_response(response)
     end
+  end
+
+  def make_calls_search(limit, after, updated_after)
+    with_rate_limiting(:search) do
+      all_property_names = get_all_property_definitions(:calls).keys
+
+      search_request = {
+        limit: limit,
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
+      }
+
+      if updated_after
+        search_request[:filters] = [ {
+          propertyName: "hs_lastmodifieddate",
+          operator: "GT",
+          value: updated_after
+        } ]
+      end
+
+      response = @client.crm.objects.search_api.do_search(
+        object_type: "calls",
+        public_object_search_request: search_request
+      )
+
+      normalize_response(response)
+    end
+  end
+
+  def make_emails_search(limit, after, updated_after)
+    with_rate_limiting(:search) do
+      all_property_names = get_all_property_definitions(:emails).keys
+
+      search_request = {
+        limit: limit,
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
+      }
+
+      if updated_after
+        search_request[:filters] = [ {
+          propertyName: "hs_lastmodifieddate",
+          operator: "GT",
+          value: updated_after
+        } ]
+      end
+
+      response = @client.crm.objects.search_api.do_search(
+        object_type: "emails",
+        public_object_search_request: search_request
+      )
+
+      normalize_response(response)
+    end
+  end
+
+  def make_meetings_search(limit, after, updated_after)
+    with_rate_limiting(:search) do
+      all_property_names = get_all_property_definitions(:meetings).keys
+
+      search_request = {
+        limit: limit,
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
+      }
+
+      if updated_after
+        search_request[:filters] = [ {
+          propertyName: "hs_lastmodifieddate",
+          operator: "GT",
+          value: updated_after
+        } ]
+      end
+
+      response = @client.crm.objects.search_api.do_search(
+        object_type: "meetings",
+        public_object_search_request: search_request
+      )
+
+      normalize_response(response)
+    end
+  end
+
+  def make_notes_search(limit, after, updated_after)
+    with_rate_limiting(:search) do
+      all_property_names = get_all_property_definitions(:notes).keys
+
+      search_request = {
+        limit: limit,
+        after: after,
+        properties: all_property_names.empty? ? nil : all_property_names,
+        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
+      }
+
+      if updated_after
+        search_request[:filters] = [ {
+          propertyName: "hs_lastmodifieddate",
+          operator: "GT",
+          value: updated_after
+        } ]
+      end
+
+      response = @client.crm.objects.search_api.do_search(
+        object_type: "notes",
+        public_object_search_request: search_request
+      )
+
+      normalize_response(response)
+    end
+  end
+
+  def get_contacts(limit: nil, after: nil, updated_after: nil)
+    search_with_10k_limit_handling(:contacts, limit: limit, after: after, updated_after: updated_after)
+  end
+
+  def get_companies(limit: nil, after: nil, updated_after: nil)
+    search_with_10k_limit_handling(:companies, limit: limit, after: after, updated_after: updated_after)
+  end
+
+  def get_deals(limit: nil, after: nil, updated_after: nil)
+    search_with_10k_limit_handling(:deals, limit: limit, after: after, updated_after: updated_after)
+  end
+
+  def get_tickets(limit: nil, after: nil, updated_after: nil)
+    search_with_10k_limit_handling(:tickets, limit: limit, after: after, updated_after: updated_after)
+  end
+
+  def get_leads(limit: nil, after: nil, updated_after: nil)
+    search_with_10k_limit_handling(:leads, limit: limit, after: after, updated_after: updated_after)
   end
 
   def get_owners(limit: 100, after: nil)
@@ -392,143 +643,19 @@ class HubspotClient
   end
 
   def get_calls(limit: 200, after: nil, updated_after: nil)
-    # Use search endpoint for both full and incremental syncs (max 200)
-    limit = limit || 200
-    limit = [ limit, 200 ].min
-
-    with_rate_limiting(:search) do
-      # Get all available call property names
-      all_property_names = get_all_property_definitions(:calls).keys
-
-      # Build the search request
-      search_request = {
-        limit: limit,
-        after: after,
-        properties: all_property_names.empty? ? nil : all_property_names,
-        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
-      }
-
-      # Add filter only if updated_after is provided
-      if updated_after
-        search_request[:filters] = [ {
-          propertyName: "hs_lastmodifieddate",
-          operator: "GT",
-          value: updated_after
-        } ]
-      end
-
-      response = @client.crm.objects.search_api.do_search(
-        object_type: "calls",
-        public_object_search_request: search_request
-      )
-
-      normalize_response(response)
-    end
+    search_with_10k_limit_handling(:calls, limit: limit, after: after, updated_after: updated_after)
   end
 
   def get_emails(limit: 200, after: nil, updated_after: nil)
-    # Use search endpoint for both full and incremental syncs (max 200)
-    limit = limit || 200
-    limit = [ limit, 200 ].min
-
-    with_rate_limiting(:search) do
-      # Get all available email property names
-      all_property_names = get_all_property_definitions(:emails).keys
-
-      # Build the search request
-      search_request = {
-        limit: limit,
-        after: after,
-        properties: all_property_names.empty? ? nil : all_property_names,
-        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
-      }
-
-      # Add filter only if updated_after is provided
-      if updated_after
-        search_request[:filters] = [ {
-          propertyName: "hs_lastmodifieddate",
-          operator: "GT",
-          value: updated_after
-        } ]
-      end
-
-      response = @client.crm.objects.search_api.do_search(
-        object_type: "emails",
-        public_object_search_request: search_request
-      )
-
-      normalize_response(response)
-    end
+    search_with_10k_limit_handling(:emails, limit: limit, after: after, updated_after: updated_after)
   end
 
   def get_meetings(limit: 200, after: nil, updated_after: nil)
-    # Use search endpoint for both full and incremental syncs (max 200)
-    limit = limit || 200
-    limit = [ limit, 200 ].min
-
-    with_rate_limiting(:search) do
-      # Get all available meeting property names
-      all_property_names = get_all_property_definitions(:meetings).keys
-
-      # Build the search request
-      search_request = {
-        limit: limit,
-        after: after,
-        properties: all_property_names.empty? ? nil : all_property_names,
-        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
-      }
-
-      # Add filter only if updated_after is provided
-      if updated_after
-        search_request[:filters] = [ {
-          propertyName: "hs_lastmodifieddate",
-          operator: "GT",
-          value: updated_after
-        } ]
-      end
-
-      response = @client.crm.objects.search_api.do_search(
-        object_type: "meetings",
-        public_object_search_request: search_request
-      )
-
-      normalize_response(response)
-    end
+    search_with_10k_limit_handling(:meetings, limit: limit, after: after, updated_after: updated_after)
   end
 
   def get_notes(limit: 200, after: nil, updated_after: nil)
-    # Use search endpoint for both full and incremental syncs (max 200)
-    limit = limit || 200
-    limit = [ limit, 200 ].min
-
-    with_rate_limiting(:search) do
-      # Get all available note property names
-      all_property_names = get_all_property_definitions(:notes).keys
-
-      # Build the search request
-      search_request = {
-        limit: limit,
-        after: after,
-        properties: all_property_names.empty? ? nil : all_property_names,
-        sorts: [ { propertyName: "hs_lastmodifieddate", direction: "ASCENDING" } ]
-      }
-
-      # Add filter only if updated_after is provided
-      if updated_after
-        search_request[:filters] = [ {
-          propertyName: "hs_lastmodifieddate",
-          operator: "GT",
-          value: updated_after
-        } ]
-      end
-
-      response = @client.crm.objects.search_api.do_search(
-        object_type: "notes",
-        public_object_search_request: search_request
-      )
-
-      normalize_response(response)
-    end
+    search_with_10k_limit_handling(:notes, limit: limit, after: after, updated_after: updated_after)
   end
 
   private
@@ -583,7 +710,7 @@ class HubspotClient
         Rails.logger.warn("Hubspot rate limit hit for #{endpoint_type}, retrying after delay")
         sleep(10)
         retry
-      elsif (e.respond_to?(:response) && e.response&.code.to_s.start_with?("4")) && retry_count < max_retries
+      elsif (response && response&.code.to_s.start_with?("4")) && retry_count < max_retries
         retry_count += 1
         delay = base_delay ** retry_count
         Rails.logger.warn("Hubspot API returned 4xx error for #{endpoint_type}, retry #{retry_count}/#{max_retries} after #{delay} seconds: #{e.message}")

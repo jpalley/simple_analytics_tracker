@@ -19,7 +19,9 @@ class BigquerySyncJob < ApplicationJob
       else
         bigquery = Google::Cloud::Bigquery.new(
           project: ENV["GOOGLE_CLOUD_PROJECT"],
-        credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+        credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n")),
+        timeout: 1200,
+        retries: 3
         # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
       )
       end
