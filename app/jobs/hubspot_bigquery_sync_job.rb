@@ -31,7 +31,7 @@ class HubspotBigquerySyncJob < ApplicationJob
     owners: { id_field: "id", single_batch: true, supports_incremental: false, uses_custom_schema: true },
     deal_pipelines: { id_field: "id", single_batch: true, supports_incremental: false, uses_custom_schema: true },
     calls: { id_field: "id", supports_incremental: true },
-    # emails: { id_field: "id", supports_incremental: true },
+    emails: { id_field: "id", supports_incremental: true },
     meetings: { id_field: "id", supports_incremental: true },
     notes: { id_field: "id", supports_incremental: true }
   }
@@ -476,16 +476,6 @@ class HubspotBigquerySyncJob < ApplicationJob
   def flatten_attributes(attributes, schema, parent_field = nil)
     data = {}
 
-    # CRITICAL FIX: Ensure the id field is included first if present
-    # if attributes.is_a?(Hash) && attributes.key?("id")
-    # Convert ID to integer if schema specifies INTEGER type for id field
-    # if schema["id"] && schema["id"][:type] == "INTEGER"
-    # data["id"] = attributes["id"].to_i if attributes["id"].present?
-    # else
-    # data["id"] = attributes["id"]
-    # end
-    # end
-
     # First, handle the special case of Hubspot properties
     if attributes.is_a?(Hash) && attributes["properties"].is_a?(Hash) && parent_field.nil?
       puts "Properties is a hash"
@@ -541,6 +531,8 @@ class HubspotBigquerySyncJob < ApplicationJob
         end
       elsif schema[field_name] && schema[field_name][:type] == "TIMESTAMP" && value.present? && value.is_a?(String)
           data[field_name] = Time.parse(value).utc.iso8601.to_s
+      elsif schema[field_name] && schema[field_name][:type] == "INTEGER"
+        data[field_name] = value.to_i
       else
         # Handle primitive values
         data[field_name] = value
