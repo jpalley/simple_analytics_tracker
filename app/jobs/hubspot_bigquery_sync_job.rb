@@ -28,10 +28,10 @@ class HubspotBigquerySyncJob < ApplicationJob
     deals: { id_field: "id", supports_incremental: true },
     tickets: { id_field: "id", supports_incremental: true },
     leads: { id_field: "id", supports_incremental: true },
-    owners: { id_field: "id", supports_incremental: false, uses_custom_schema: true },
+    owners: { id_field: "id", single_batch: true, supports_incremental: false, uses_custom_schema: true },
     deal_pipelines: { id_field: "id", single_batch: true, supports_incremental: false, uses_custom_schema: true },
     calls: { id_field: "id", supports_incremental: true },
-    emails: { id_field: "id", supports_incremental: true },
+    # emails: { id_field: "id", supports_incremental: true },
     meetings: { id_field: "id", supports_incremental: true },
     notes: { id_field: "id", supports_incremental: true }
   }
