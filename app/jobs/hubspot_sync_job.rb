@@ -19,15 +19,14 @@ class HubspotSyncJob < ApplicationJob
   def process_batch(batch)
     utks = batch.map { |person| person.properties["hubspotutk"] }.compact
     return if utks.empty?
-    puts "utks: #{utks.inspect}"
     response = hubspot_client.contacts_by_utk(utks)
-    puts response.inspect
     batch.each do |person|
       utk = person.properties["hubspotutk"]
       if utk && response[utk]
         person.properties["hubspot_contact_id"] = response[utk]["vid"]
       end
-      person.update_column(:hubspot_synced_at, Time.current)
+      person.hubspot_synced_at = Time.current
+      person.save!(validate: false)
     end
   end
 
