@@ -15,7 +15,7 @@ class FacebookSyncJob < ApplicationJob
     if Rails.env.development?
       bigquery = Google::Cloud::Bigquery.new(
         project: ENV["GOOGLE_CLOUD_PROJECT"],
-        # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
+      # credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"].gsub(/(?<!\\)(\\n)/, "").gsub('\n', "n"))
       credentials: JSON.parse(ENV["GOOGLE_CLOUD_CREDENTIALS"])
       )
     else
@@ -43,7 +43,7 @@ class FacebookSyncJob < ApplicationJob
         puts row.inspect
         # Extract necessary data from row
         user_data = FacebookAds::ServerSide::UserData.new(
-          emails: [ row[:email].downcase ],
+          emails: [ row[:email]&.downcase ],
           phones: [ row[:phone] ],
           client_user_agent: row[:user_agent],
           client_ip_address: row[:ip_address],
@@ -59,7 +59,7 @@ class FacebookSyncJob < ApplicationJob
         custom_data = FacebookAds::ServerSide::CustomData.new(
           # contents: [ content ],
           currency: "usd",
-          value: 123.46 #sync.event_value
+          value: 123.46 # sync.event_value
         )
 
         event = FacebookAds::ServerSide::Event.new(
@@ -68,7 +68,7 @@ class FacebookSyncJob < ApplicationJob
           user_data: user_data,
           custom_data: custom_data,
           event_source_url: sync.event_source_url,
-          action_source: 'website'
+          action_source: "website"
         )
         if sync.test_mode
           request = FacebookAds::ServerSide::EventRequest.new(
