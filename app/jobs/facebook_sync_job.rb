@@ -65,6 +65,7 @@ class FacebookSyncJob < ApplicationJob
         event = FacebookAds::ServerSide::Event.new(
           event_name: sync.event_name,
           event_time: row[:conversion_time],
+          event_id: "#{row[:visitor_id]}-#{row[:conversion_time]}",
           user_data: user_data,
           custom_data: custom_data,
           event_source_url: sync.event_source_url,
