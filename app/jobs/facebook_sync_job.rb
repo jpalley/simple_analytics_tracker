@@ -32,7 +32,7 @@ class FacebookSyncJob < ApplicationJob
 
       # Query BigQuery for conversion data since last_counter
       query = <<-SQL
-        SELECT email, phone, user_agent, ip_address, fbc, fbp, row_counter, conversion_time FROM `#{table_name}`
+        SELECT visitor_id, email, phone, user_agent, ip_address, fbc, fbp, row_counter, conversion_time FROM `#{table_name}`
 
         WHERE row_counter > #{last_counter} ORDER BY row_counter DESC
       SQL
