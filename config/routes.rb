@@ -36,6 +36,9 @@ Rails.application.routes.draw do
   get "bigquery_explorer/table_data", to: "bigquery_explorer#table_data", as: :table_data_bigquery_explorer
   get "bigquery_explorer/query", to: "bigquery_explorer#query", as: :query_bigquery_explorer
 
+  # Google Ads CSV export route with secure token
+  get "google_ads_csv/:token", to: "google_ads_csv#hubspot_calls_csv", as: :google_ads_csv
+
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
