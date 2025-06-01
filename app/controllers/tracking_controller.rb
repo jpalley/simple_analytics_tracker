@@ -108,6 +108,35 @@ class TrackingController < ApplicationController
     end
   end
 
+  def update_email
+    email_params = process_update_email_params
+
+    # Find person by SA_UUID (Person UUID)
+    person = Person.find_by(uuid: email_params[:SA_UUID])
+
+    if person.nil?
+      render json: { status: "error", message: "Person not found" }, status: :not_found
+      return
+    end
+
+    # Initialize properties if not present
+    person.properties ||= {}
+
+    # Only update email if it doesn't already exist
+    if person.properties["email"].blank?
+      person.properties["email"] = email_params[:email]
+      person.properties["oir_source"] = email_params[:oir_source]
+
+      if person.save
+        render json: { status: "success", message: "Email added successfully" }, status: :ok
+      else
+        render json: { status: "error", errors: person.errors.full_messages }, status: :unprocessable_entity
+      end
+    else
+      render json: { status: "success", message: "Email already exists, not overwritten" }, status: :ok
+    end
+  end
+
   private
   def process_identify_params
     params[:tracking].permit(
@@ -123,5 +152,9 @@ class TrackingController < ApplicationController
       :timestamp,
       event_data: {}
     )
+  end
+
+  def process_update_email_params
+    params.permit(:email, :SA_UUID, :oir_source)
   end
 end

@@ -162,3 +162,59 @@ The job dynamically manages BigQuery schemas:
 - Handles complex nested data structures
 - Properly formats array fields
 - Sanitizes field names to be compatible with BigQuery
+
+## Analytics
+
+- Track events and identify users through tracking pixels
+
+### Tracking Endpoints
+
+#### POST /track/identify
+Used to identify a user and set their properties.
+
+#### POST /track/event
+Used to track events for users.
+
+#### POST /track/update_email
+Used to add an email address to a person's properties if it doesn't already exist.
+
+**Payload:**
+```json
+{
+  "email": "user@example.com",
+  "SA_UUID": "person-uuid-here",
+  "oir_source": "AUTOFILLED_TRACKING_ID"
+}
+```
+
+**Behavior:**
+- Finds the person by SA_UUID (Person UUID)
+- Adds the email to the person's properties if no email currently exists
+- Does not overwrite an existing email address
+- Returns success status with appropriate message
+
+**Response Examples:**
+
+Success (email added):
+```json
+{
+  "status": "success",
+  "message": "Email added successfully"
+}
+```
+
+Success (email already exists):
+```json
+{
+  "status": "success", 
+  "message": "Email already exists, not overwritten"
+}
+```
+
+Error (person not found):
+```json
+{
+  "status": "error",
+  "message": "Person not found"
+}
+```

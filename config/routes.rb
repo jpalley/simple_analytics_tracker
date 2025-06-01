@@ -19,6 +19,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
   post "track/identify", to: "tracking#identify"
   post "track/event", to: "tracking#event"
+  post "track/update_email", to: "tracking#update_email"
 
   post "metrics/event", to: "metrics#event"
   # Add the UI routes with basic HTTP authentication
