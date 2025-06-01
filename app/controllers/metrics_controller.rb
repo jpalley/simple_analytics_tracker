@@ -1,6 +1,6 @@
 class MetricsController < AdminController
   def index
-    @hourly_stats = HourlyStat.ordered.last(24 * 30) # Show last 30 days of stats
+    @hourly_stats = HourlyStat.order(hour: :desc).last(24 * 30) # Show last 30 days of stats in reverse chronological order
     @recent_errors = ErrorRequest.recent.limit(20)
 
     # Calculate error rate statistics
