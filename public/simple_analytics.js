@@ -70,6 +70,9 @@
       
       // Check for Hubspot cookie immediately and periodically
       checkHubspotCookie();
+      
+      // Check for Facebook pixel cookie immediately and periodically
+      checkFacebookPixel();
     }
 
     function captureUrlParameters() {
@@ -119,14 +122,16 @@
     
     function getFacebookPixelParameter() {
       // Get all cookies as a string
-      const cookies = document.cookie.split(';');
+      var cookies = document.cookie.split(';');
   
       // Find the _fbp cookie
-      const fbpCookie = cookies.find(cookie => cookie.trim().startsWith('_fbp='));
+      var fbpCookie = cookies.find(function(cookie) {
+        return cookie.trim().startsWith('_fbp=');
+      });
   
       if (fbpCookie) {
           // Extract the value of _fbp
-          const [, fbpValue] = fbpCookie.split('=');
+          var fbpValue = fbpCookie.split('=')[1];
           return decodeURIComponent(fbpValue);
       }
   
@@ -239,6 +244,7 @@
     
     // Hubspot cookie check logic
     var hubspotCookieInterval;
+    var facebookPixelInterval;
     
     function checkHubspotCookie() {
       var hubspotutk = getCookie('hubspotutk');
@@ -251,6 +257,21 @@
         // If not found, set up an interval to check for it
         if (!hubspotCookieInterval) {
           hubspotCookieInterval = setInterval(checkHubspotCookie, 100);
+        }
+      }
+    }
+    
+    function checkFacebookPixel() {
+      var fbpValue = getFacebookPixelParameter();
+      if (fbpValue) {
+        identify({ fbp: fbpValue });
+        if (facebookPixelInterval) {
+          clearInterval(facebookPixelInterval);
+        }
+      } else {
+        // If not found, set up an interval to check for it
+        if (!facebookPixelInterval) {
+          facebookPixelInterval = setInterval(checkFacebookPixel, 100);
         }
       }
     }
