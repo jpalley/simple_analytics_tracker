@@ -20,7 +20,47 @@
             margin: 0 auto;
         }
     </style>
-    <script src="/simple_analytics.js"></script>
+    
+    <!-- Simple Analytics Tracker Setup -->
+    <script>
+      // Generate or retrieve visitor UUID before script loads
+      (function() {
+        function generateUUID() {
+          return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+            /[xy]/g,
+            function (c) {
+              var r = (Math.random() * 16) | 0,
+                v = c === "x" ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            }
+          );
+        }
+        
+        // Initialize or retrieve UUID from localStorage
+        var visitorUUID = localStorage.getItem("visitor_uuid");
+        if (!visitorUUID) {
+          visitorUUID = generateUUID();
+          localStorage.setItem("visitor_uuid", visitorUUID);
+        }
+        
+        // Make UUID globally available immediately
+        window.VISITOR_UUID = visitorUUID;
+        window.getVisitorUUID = function() {
+          return visitorUUID;
+        };
+      })();
+      
+      // Set up VisitorLogger configuration
+      window.VisitorLoggerConfig = {
+        serverUrl: 'http://localhost:3000/',
+        enableScrollDepth: true,
+        enableEventLogging: true,
+        customParameters: ['rfid'] // Add any custom URL parameters you want to track
+      };
+    </script>
+
+    <!-- Then load the analytics script -->
+    <script src="/simple_analytics.js" async defer></script>
     
 </head>
 <body>
@@ -87,53 +127,6 @@
             <p>This page has been significantly expanded to require scrolling. It now includes various elements such as headings, paragraphs, lists, images, and tables. This should provide a good test environment for scroll depth tracking and other analytics features.</p>
         </div>
     </div>
-    <script>
-        // Wait for the DOM to be fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Function to initialize VisitorLogger
-            function initVisitorLogger() {
-                if (typeof VisitorLogger !== 'undefined') {
-                    VisitorLogger.init({
-                        serverUrl: 'http://localhost:3000/',
-                        enableScrollDepth: true,
-                        enableEventLogging: true,
-                        customParameters: ['rfid']
-                    });
-                    
-                    // Function to check for hubspotutk cookie and identify user
-                    function checkAndIdentifyUser() {
-                        var hubspotutk = getCookie('hubspotutk');
-                        if (hubspotutk) {
-                            console.log('Identifying user with hubspotutk:', hubspotutk);
-                            VisitorLogger.identify({
-                                hubspotutk: hubspotutk
-                            });
-                            // Stop watching for the cookie once identified
-                            clearInterval(cookieCheckInterval);
-                        }
-                    }
-    
-                    // Helper function to get cookie value
-                    function getCookie(name) {
-                        var value = "; " + document.cookie;
-                        var parts = value.split("; " + name + "=");
-                        if (parts.length == 2) return parts.pop().split(";").shift();
-                    }
-    
-                    // Check immediately and then every 1 second
-                    checkAndIdentifyUser();
-                    var cookieCheckInterval = setInterval(checkAndIdentifyUser, 1000);
-    
-                } else {
-                    // If VisitorLogger is not loaded yet, wait and try again
-                    setTimeout(initVisitorLogger, 50);
-                }
-            }
-    
-            // Start the initialization process
-            initVisitorLogger();
-        });
-    </script>
 </body>
 </html>
 

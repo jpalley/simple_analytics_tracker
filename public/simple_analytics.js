@@ -290,4 +290,9 @@
 
   // Expose VisitorLogger to the global object
   window.VisitorLogger = VisitorLogger;
+  
+  // Auto-initialize if configuration is provided
+  if (typeof window.VisitorLoggerConfig !== 'undefined') {
+    VisitorLogger.init(window.VisitorLoggerConfig);
+  }
 })(window, document);

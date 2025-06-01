@@ -33,29 +33,30 @@ To implement the Simple Analytics Tracker on your website, add the following cod
       return visitorUUID;
     };
   })();
+  
+  // Set up VisitorLogger configuration
+  window.VisitorLoggerConfig = {
+    serverUrl: 'https://analytics.clever-builds.com/',
+    enableScrollDepth: true,
+    enableEventLogging: true,
+    customParameters: ['rfid'] // Add any custom URL parameters you want to track
+  };
 </script>
 
 <!-- Then load the analytics script -->
 <script src="https://your-domain.com/simple_analytics.js" async defer></script>
 ```
 
-## Initialization
+That's it! The analytics script will automatically initialize itself when it loads and detects the configuration object.
 
-Initialize the tracker by adding this script at the end of your HTML body:
+## Configuration Options
 
-```html
-<script>
-  // Initialize the VisitorLogger with your configuration
-  document.addEventListener('DOMContentLoaded', function() {
-    VisitorLogger.init({
-      serverUrl: 'https://analytics.clever-builds.com/',
-      enableScrollDepth: true,
-      enableEventLogging: true,
-      customParameters: ['rfid'] // Add any custom URL parameters you want to track
-    });
-  });
-</script>
-```
+When setting up `window.VisitorLoggerConfig`, you can configure the following options:
+
+- `serverUrl` (required): The URL of your analytics server
+- `enableScrollDepth`: Set to `true` to track how far users scroll on your pages
+- `enableEventLogging`: Set to `true` to enable additional event logging
+- `customParameters`: An array of custom URL parameters you want to track
 
 ## Advanced Usage
 
@@ -95,24 +96,16 @@ VisitorLogger.identify({
 });
 ```
 
-## Configuration Options
+## Automatic Features
 
-When initializing the tracker, you can configure the following options:
-
-- `serverUrl` (required): The URL of your analytics server
-- `enableScrollDepth`: Set to `true` to track how far users scroll on your pages
-- `enableEventLogging`: Set to `true` to enable additional event logging
-- `customParameters`: An array of custom URL parameters you want to track
-
-## Hubspot Integration
-
-The tracker automatically looks for and sends the Hubspot tracking cookie (`hubspotutk`) if it's available on your site.
+The tracker automatically:
+- Generates a visitor UUID and stores it in localStorage
+- Tracks page visits and user interactions
+- Captures UTM parameters and other tracking parameters from URLs
+- Monitors email input fields and identifies users when they enter an email
+- Looks for and sends the Hubspot tracking cookie (`hubspotutk`) if available
+- Sends all data to your specified analytics server endpoint
 
 ## Technical Details
 
-The script:
-- Generates a visitor UUID before the tracking script loads
-- Loads the tracking script asynchronously to avoid blocking page rendering
-- Automatically tracks page visits and user interactions
-- Captures UTM parameters and other tracking parameters from URLs
-- Sends all data to your specified analytics server endpoint 
+The script uses the Configuration Object Pattern for initialization. Simply set up the `window.VisitorLoggerConfig` object before loading the script, and it will automatically initialize with your settings. The script loads asynchronously to avoid blocking page rendering. 
