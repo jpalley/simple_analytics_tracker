@@ -277,9 +277,31 @@
     }
 
     function identify(params) {
+      identifyWithRetry(params, 0);
+    }
+
+    function identifyWithRetry(params, retryCount) {
+      var maxRetries = 5;
+      var baseDelay = 1000; // 1 second base delay
+      
       var xhr = new XMLHttpRequest();
       xhr.open("POST", config.serverUrl + "track/identify", true);
       xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 422 && retryCount < maxRetries) {
+            // Calculate exponential backoff delay: baseDelay * 2^retryCount
+            var delay = baseDelay * Math.pow(2, retryCount);
+            
+            setTimeout(function() {
+              identifyWithRetry(params, retryCount + 1);
+            }, delay);
+          }
+          // For other status codes (success, other errors), we don't retry
+        }
+      };
+      
       var data = {
         uuid: uuid,
         properties: params,

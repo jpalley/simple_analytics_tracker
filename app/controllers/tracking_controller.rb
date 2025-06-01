@@ -111,13 +111,8 @@ class TrackingController < ApplicationController
   def update_email
     email_params = process_update_email_params
 
-    # Find person by SA_UUID (Person UUID)
-    person = Person.find_by(uuid: email_params[:SA_UUID])
-
-    if person.nil?
-      render json: { status: "error", message: "Person not found" }, status: :not_found
-      return
-    end
+    # Find or create person by SA_UUID (Person UUID)
+    person = Person.find_or_initialize_by(uuid: email_params[:SA_UUID])
 
     # Initialize properties if not present
     person.properties ||= {}
