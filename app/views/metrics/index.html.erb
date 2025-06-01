@@ -3,23 +3,81 @@
     <h1 class="mb-0">Metrics Dashboard</h1>
   </div>
   <div class="card-body">
+    <!-- Error Rate Summary Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <div class="card bg-primary text-white">
+          <div class="card-body">
+            <h5 class="card-title">Total Requests (24h)</h5>
+            <h2 class="card-text"><%= number_with_delimiter(@total_requests_24h) %></h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-danger text-white">
+          <div class="card-body">
+            <h5 class="card-title">Total Errors (24h)</h5>
+            <h2 class="card-text"><%= number_with_delimiter(@total_errors_24h) %></h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-warning text-white">
+          <div class="card-body">
+            <h5 class="card-title">Error Rate (24h)</h5>
+            <h2 class="card-text"><%= @error_rate_24h %>%</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-info text-white">
+          <div class="card-body">
+            <h5 class="card-title">4xx Errors (24h)</h5>
+            <h2 class="card-text"><%= number_with_delimiter(@hourly_stats.sum(&:error_4xx_count)) %></h2>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hourly Statistics Table -->
     <div class="table-responsive">
       <table class="table table-striped table-hover">
         <thead class="table-dark">
           <tr>
             <th>Hour</th>
             <th>Events Count</th>
-            <th>Unique People Count</th>
-            <th>New People Count</th>
+            <th>Unique People</th>
+            <th>New People</th>
+            <th>Total Requests</th>
+            <th>4xx Errors</th>
+            <th>5xx Errors</th>
+            <th>Error Rate %</th>
           </tr>
         </thead>
         <tbody>
           <% @hourly_stats.each do |stat| %>
-            <tr>
+            <% error_rate = stat.total_requests_count > 0 ? ((stat.error_4xx_count + stat.error_5xx_count).to_f / stat.total_requests_count * 100).round(2) : 0 %>
+            <tr class="<%= 'table-danger' if error_rate > 5 %>">
               <td><%= stat.hour.strftime('%Y-%m-%d %H:%M') %></td>
               <td><%= stat.events_count || 0 %></td>
               <td><%= stat.unique_people_count || 0 %></td>
               <td><%= stat.new_people_count || 0 %></td>
+              <td><%= stat.total_requests_count || 0 %></td>
+              <td>
+                <span class="badge bg-warning"><%= stat.error_4xx_count || 0 %></span>
+              </td>
+              <td>
+                <span class="badge bg-danger"><%= stat.error_5xx_count || 0 %></span>
+              </td>
+              <td>
+                <% if error_rate > 5 %>
+                  <span class="badge bg-danger"><%= error_rate %>%</span>
+                <% elsif error_rate > 2 %>
+                  <span class="badge bg-warning"><%= error_rate %>%</span>
+                <% else %>
+                  <span class="badge bg-success"><%= error_rate %>%</span>
+                <% end %>
+              </td>
             </tr>
           <% end %>
         </tbody>
@@ -27,3 +85,136 @@
     </div>
   </div>
 </div>
+
+<!-- Error Statistics Section -->
+<div class="card mt-4">
+  <div class="card-header">
+    <h2 class="mb-0">Error Statistics (Last 24 Hours)</h2>
+  </div>
+  <div class="card-body">
+    <% if @common_error_codes.any? %>
+      <div class="row">
+        <div class="col-md-6">
+          <h4>Most Common Error Codes</h4>
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Status Code</th>
+                <th>Count</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @common_error_codes.each do |status_code, count| %>
+                <tr>
+                  <td><span class="badge bg-secondary"><%= status_code %></span></td>
+                  <td><%= count %></td>
+                  <td>
+                    <%= case status_code
+                        when 400 then "Bad Request"
+                        when 401 then "Unauthorized"
+                        when 403 then "Forbidden"
+                        when 404 then "Not Found"
+                        when 422 then "Unprocessable Entity"
+                        when 500 then "Internal Server Error"
+                        when 502 then "Bad Gateway"
+                        when 503 then "Service Unavailable"
+                        else "HTTP Error"
+                        end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <h4>Detailed Error Breakdown (24h)</h4>
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Error Type</th>
+                <th>Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>400 - Bad Request</td>
+                <td><%= @hourly_stats.sum(&:error_400_count) %></td>
+              </tr>
+              <tr>
+                <td>401 - Unauthorized</td>
+                <td><%= @hourly_stats.sum(&:error_401_count) %></td>
+              </tr>
+              <tr>
+                <td>403 - Forbidden</td>
+                <td><%= @hourly_stats.sum(&:error_403_count) %></td>
+              </tr>
+              <tr>
+                <td>404 - Not Found</td>
+                <td><%= @hourly_stats.sum(&:error_404_count) %></td>
+              </tr>
+              <tr>
+                <td>422 - Unprocessable Entity</td>
+                <td><%= @hourly_stats.sum(&:error_422_count) %></td>
+              </tr>
+              <tr>
+                <td>500 - Internal Server Error</td>
+                <td><%= @hourly_stats.sum(&:error_500_count) %></td>
+              </tr>
+              <tr>
+                <td>502 - Bad Gateway</td>
+                <td><%= @hourly_stats.sum(&:error_502_count) %></td>
+              </tr>
+              <tr>
+                <td>503 - Service Unavailable</td>
+                <td><%= @hourly_stats.sum(&:error_503_count) %></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <p class="text-muted">No errors recorded in the last 24 hours.</p>
+    <% end %>
+  </div>
+</div>
+
+<!-- Recent Error Requests -->
+<% if @recent_errors.any? %>
+  <div class="card mt-4">
+    <div class="card-header">
+      <h2 class="mb-0">Recent Error Requests</h2>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Time</th>
+              <th>Status</th>
+              <th>Method</th>
+              <th>Path</th>
+              <th>IP Address</th>
+              <th>Error Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @recent_errors.each do |error| %>
+              <tr>
+                <td><%= error.timestamp.strftime('%m/%d %H:%M') %></td>
+                <td>
+                  <% badge_class = error.status_code >= 500 ? 'bg-danger' : 'bg-warning' %>
+                  <span class="badge <%= badge_class %>"><%= error.status_code %></span>
+                </td>
+                <td><span class="badge bg-info"><%= error.request_method %></span></td>
+                <td><code><%= truncate(error.path, length: 40) %></code></td>
+                <td><%= error.ip_address %></td>
+                <td><%= truncate(error.error_message, length: 60) if error.error_message.present? %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>

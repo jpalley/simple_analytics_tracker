@@ -5,6 +5,11 @@ Rails.application.routes.draw do
       delete :destroy_all
     end
   end
+  resources :error_requests do
+    collection do
+      delete :destroy_all
+    end
+  end
   mount MissionControl::Jobs::Engine, at: "/jobs"
   get "metrics/index"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

@@ -22,6 +22,23 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_003445) do
     t.boolean "notification_sent", default: false
   end
 
+  create_table "error_requests", force: :cascade do |t|
+    t.integer "status_code", null: false
+    t.string "request_method", null: false
+    t.string "path", null: false
+    t.text "user_agent"
+    t.string "ip_address"
+    t.text "referer"
+    t.text "error_message"
+    t.text "request_params"
+    t.datetime "timestamp", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status_code", "timestamp"], name: "index_error_requests_on_status_code_and_timestamp"
+    t.index ["status_code"], name: "index_error_requests_on_status_code"
+    t.index ["timestamp"], name: "index_error_requests_on_timestamp"
+  end
+
   create_table "events", force: :cascade do |t|
     t.string "uuid"
     t.string "event_type"
@@ -64,6 +81,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_21_003445) do
     t.integer "new_people_count", default: 0
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "error_4xx_count", default: 0
+    t.integer "error_5xx_count", default: 0
+    t.integer "error_400_count", default: 0
+    t.integer "error_401_count", default: 0
+    t.integer "error_403_count", default: 0
+    t.integer "error_404_count", default: 0
+    t.integer "error_422_count", default: 0
+    t.integer "error_500_count", default: 0
+    t.integer "error_502_count", default: 0
+    t.integer "error_503_count", default: 0
+    t.integer "total_requests_count", default: 0
     t.index ["hour"], name: "index_hourly_stats_on_hour", unique: true
   end
 

@@ -250,7 +250,7 @@
       } else {
         // If not found, set up an interval to check for it
         if (!hubspotCookieInterval) {
-          hubspotCookieInterval = setInterval(checkHubspotCookie, 1000);
+          hubspotCookieInterval = setInterval(checkHubspotCookie, 100);
         }
       }
     }

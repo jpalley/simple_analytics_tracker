@@ -1,0 +1,107 @@
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">Error Request Details</h1>
+    <%= link_to "← Back to Error Requests", error_requests_path, class: "btn btn-secondary" %>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <h3>Request Information</h3>
+        <table class="table table-bordered">
+          <tr>
+            <th>Timestamp</th>
+            <td><%= @error_request.timestamp.strftime('%B %d, %Y at %H:%M:%S %Z') %></td>
+          </tr>
+          <tr>
+            <th>Status Code</th>
+            <td>
+              <% badge_class = @error_request.status_code >= 500 ? 'bg-danger' : 'bg-warning' %>
+              <span class="badge <%= badge_class %> fs-6"><%= @error_request.status_code %></span>
+              <%= case @error_request.status_code
+                  when 400 then "Bad Request"
+                  when 401 then "Unauthorized"
+                  when 403 then "Forbidden"
+                  when 404 then "Not Found"
+                  when 422 then "Unprocessable Entity"
+                  when 500 then "Internal Server Error"
+                  when 502 then "Bad Gateway"
+                  when 503 then "Service Unavailable"
+                  else "HTTP Error"
+                  end %>
+            </td>
+          </tr>
+          <tr>
+            <th>Request Method</th>
+            <td><span class="badge bg-info fs-6"><%= @error_request.request_method %></span></td>
+          </tr>
+          <tr>
+            <th>Path</th>
+            <td><code><%= @error_request.path %></code></td>
+          </tr>
+          <tr>
+            <th>IP Address</th>
+            <td><%= @error_request.ip_address %></td>
+          </tr>
+          <tr>
+            <th>Referer</th>
+            <td>
+              <% if @error_request.referer.present? %>
+                <a href="<%= @error_request.referer %>" target="_blank" rel="noopener">
+                  <%= truncate(@error_request.referer, length: 60) %>
+                </a>
+              <% else %>
+                <em>None</em>
+              <% end %>
+            </td>
+          </tr>
+        </table>
+      </div>
+      
+      <div class="col-md-6">
+        <h3>Additional Details</h3>
+        <table class="table table-bordered">
+          <tr>
+            <th>User Agent</th>
+            <td>
+              <% if @error_request.user_agent.present? %>
+                <small><%= @error_request.user_agent %></small>
+              <% else %>
+                <em>None</em>
+              <% end %>
+            </td>
+          </tr>
+          <tr>
+            <th>Created At</th>
+            <td><%= @error_request.created_at.strftime('%B %d, %Y at %H:%M:%S %Z') %></td>
+          </tr>
+          <tr>
+            <th>Updated At</th>
+            <td><%= @error_request.updated_at.strftime('%B %d, %Y at %H:%M:%S %Z') %></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <% if @error_request.error_message.present? %>
+      <div class="row mt-4">
+        <div class="col-md-12">
+          <h3>Error Message</h3>
+          <div class="alert alert-danger">
+            <pre><%= @error_request.error_message %></pre>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @error_request.request_params.present? %>
+      <div class="row mt-4">
+        <div class="col-md-12">
+          <h3>Request Parameters</h3>
+          <div class="alert alert-info">
+            <pre><%= JSON.pretty_generate(JSON.parse(@error_request.request_params)) rescue @error_request.request_params %></pre>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div> 

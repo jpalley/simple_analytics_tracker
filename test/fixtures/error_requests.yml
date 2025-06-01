@@ -1,0 +1,32 @@
+one:
+  status_code: 404
+  request_method: "GET"
+  path: "/not/found"
+  user_agent: "Mozilla/5.0"
+  ip_address: "127.0.0.1"
+  referer: "https://example.com"
+  error_message: "Page not found"
+  request_params: '{"id": "123"}'
+  timestamp: <%= 2.hours.ago %>
+
+two:
+  status_code: 500
+  request_method: "POST"
+  path: "/api/errors"
+  user_agent: "Mozilla/5.0"
+  ip_address: "192.168.1.1"
+  referer: "https://example.com/form"
+  error_message: "Internal server error"
+  request_params: '{"data": "test"}'
+  timestamp: <%= 1.hour.ago %>
+
+three:
+  status_code: 422
+  request_method: "PUT"
+  path: "/api/update"
+  user_agent: "Mozilla/5.0"
+  ip_address: "10.0.0.1"
+  referer: "https://example.com/edit"
+  error_message: "Validation failed"
+  request_params: '{"name": ""}'
+  timestamp: <%= 30.minutes.ago %> 
