@@ -25,8 +25,7 @@ class HubspotSyncJob < ApplicationJob
 
     # Update sync timestamp for all processed records
     batch.each do |person|
-      person.hubspot_synced_at = Time.current
-      person.save!(validate: false)
+      person.update_column(:hubspot_synced_at, Time.current) # Update timestamp without touching updated_at
     end
   end
 
