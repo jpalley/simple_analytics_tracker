@@ -171,11 +171,12 @@ class HubspotClient
   # @param email [String] Email address for the contact
   # @param additional_properties [Hash] Additional properties to set on the contact
   # @return [Hash] Created contact data
-  def create_contact(email, additional_properties = {})
+  def create_contact(email, sa_id, sa_source, additional_properties = {})
     with_rate_limiting(:default) do
       properties = {
         "email" => email,
-        "hs_object_source" => "ENRICHMENT"
+        "sa_id" => sa_id,
+        "sa_source" => sa_source
       }.merge(additional_properties)
 
       contact_input = {

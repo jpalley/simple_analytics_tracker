@@ -69,7 +69,7 @@ class HubspotSyncJob < ApplicationJob
       else
         # Contact doesn't exist and hasn't been created yet - create new contact
         begin
-          new_contact = hubspot_client.create_contact(email)
+          new_contact = hubspot_client.create_contact(email, person.id, "opensend")
           contact_id = new_contact["id"] || new_contact["hs_object_id"]
           person.properties["hubspot_contact_id"] = contact_id
           created_contacts[email] = contact_id # Track the created contact
