@@ -121,45 +121,50 @@ class HubspotClient
   def contacts_by_email(emails)
     return {} if emails.empty?
 
-    with_rate_limiting(:search) do
-      all_property_names = get_all_property_definitions(:contacts).keys
+    all_results = {}
 
-      # Build filters for each email
-      filters = emails.map do |email|
-        {
-          propertyName: "email",
-          operator: "EQ",
-          value: email
-        }
-      end
+    # HubSpot allows maximum 6 filters per filter group, so we need to chunk emails
+    emails.each_slice(6) do |email_chunk|
+      with_rate_limiting(:search) do
+        all_property_names = get_all_property_definitions(:contacts).keys
 
-      search_request = {
-        limit: 100,
-        properties: all_property_names.empty? ? [ "email", "hs_object_id" ] : all_property_names,
-        filterGroups: [
+        # Build filters for each email in this chunk
+        filters = email_chunk.map do |email|
           {
-            filters: filters
+            propertyName: "email",
+            operator: "EQ",
+            value: email
           }
-        ]
-      }
+        end
 
-      response = @client.crm.contacts.search_api.do_search(
-        public_object_search_request: search_request
-      )
+        search_request = {
+          limit: 100,
+          properties: all_property_names.empty? ? [ "email", "hs_object_id" ] : all_property_names,
+          filterGroups: [
+            {
+              filters: filters
+            }
+          ]
+        }
 
-      # Convert response to a hash with email as keys for easier lookup
-      result = {}
-      if response&.results
-        response.results.each do |contact|
-          contact_hash = contact.respond_to?(:to_hash) ? contact.to_hash : contact
-          if contact_hash.is_a?(Hash) && contact_hash["properties"] && contact_hash["properties"]["email"]
-            email = contact_hash["properties"]["email"]
-            result[email] = contact_hash
+        response = @client.crm.contacts.search_api.do_search(
+          public_object_search_request: search_request
+        )
+
+        # Convert response to a hash with email as keys for easier lookup
+        if response&.results
+          response.results.each do |contact|
+            contact_hash = contact.respond_to?(:to_hash) ? contact.to_hash : contact
+            if contact_hash.is_a?(Hash) && contact_hash["properties"] && contact_hash["properties"]["email"]
+              email = contact_hash["properties"]["email"]
+              all_results[email] = contact_hash
+            end
           end
         end
       end
-      result
     end
+
+    all_results
   end
 
   # Create a new contact in HubSpot
