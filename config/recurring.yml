@@ -17,13 +17,13 @@ production:
     schedule: every hour
   bigquery_sync:
     class: BigquerySyncJob
-    schedule: every 15 minutes
+    schedule: every 60 minutes
   data_cleanup:
     class: DataCleanupJob
     schedule: every day at 2am
   hubspot_sync:
     class: HubspotSyncJob
-    schedule: every 15 days
+    schedule: every 30 days
   hubspot_bigquery_sync:
     class: HubspotBigquerySyncJob
     schedule: every 6 hours
