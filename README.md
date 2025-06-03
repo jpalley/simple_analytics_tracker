@@ -218,3 +218,48 @@ Error (person not found):
   "message": "Person not found"
 }
 ```
+
+### HubSpot Contact Sync
+
+The application includes automated HubSpot contact synchronization through the `HubspotSyncJob` which runs periodically to sync person data with HubSpot contacts.
+
+#### Sync Methods
+
+The HubSpot contact sync supports two methods for linking contacts, with UTK (HubSpot User Token) taking precedence:
+
+1. **UTK-based sync** (Primary method)
+   - Uses the `hubspotutk` property to find existing HubSpot contacts
+   - Links the `hubspot_contact_id` when a match is found
+   - Takes precedence over email-based sync
+
+2. **Email-based sync** (Secondary method)
+   - For people with email addresses but no existing HubSpot contact link
+   - Searches HubSpot for existing contacts by email address
+   - If contact exists: links the existing contact ID
+   - If contact doesn't exist: creates a new contact with `hs_object_source` set to "ENRICHMENT"
+
+#### Sync Process
+
+1. The job processes people in batches (default: 100 records)
+2. First, UTK-based sync is performed for people with `hubspotutk` properties
+3. Then, email-based sync is performed for remaining people with email addresses
+4. Each person's `hubspot_synced_at` timestamp is updated after processing
+5. Rate limiting is enforced (100 requests per minute) with delays between batches
+
+#### Configuration
+
+The HubSpot contact sync uses the same access token as the main HubSpot integration:
+```bash
+HUBSPOT_ACCESS_TOKEN=your_hubspot_access_token_here
+```
+
+The job will skip processing if the access token is not configured.
+
+#### Running the Sync
+
+The job can be run manually:
+```bash
+bundle exec rails runner "HubspotSyncJob.perform_now"
+```
+
+Or scheduled to run periodically (recommended setup with cron or similar scheduler).

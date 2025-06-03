@@ -115,6 +115,76 @@ class HubspotClient
     result
   end
 
+  # Search for contacts by email addresses
+  # @param emails [Array<String>] Array of email addresses to search for
+  # @return [Hash] Hash with email as key and contact data as value
+  def contacts_by_email(emails)
+    return {} if emails.empty?
+
+    with_rate_limiting(:search) do
+      all_property_names = get_all_property_definitions(:contacts).keys
+
+      # Build filters for each email
+      filters = emails.map do |email|
+        {
+          propertyName: "email",
+          operator: "EQ",
+          value: email
+        }
+      end
+
+      search_request = {
+        limit: 100,
+        properties: all_property_names.empty? ? [ "email", "hs_object_id" ] : all_property_names,
+        filterGroups: [
+          {
+            filters: filters
+          }
+        ]
+      }
+
+      response = @client.crm.contacts.search_api.do_search(
+        public_object_search_request: search_request
+      )
+
+      # Convert response to a hash with email as keys for easier lookup
+      result = {}
+      if response&.results
+        response.results.each do |contact|
+          contact_hash = contact.respond_to?(:to_hash) ? contact.to_hash : contact
+          if contact_hash.is_a?(Hash) && contact_hash["properties"] && contact_hash["properties"]["email"]
+            email = contact_hash["properties"]["email"]
+            result[email] = contact_hash
+          end
+        end
+      end
+      result
+    end
+  end
+
+  # Create a new contact in HubSpot
+  # @param email [String] Email address for the contact
+  # @param additional_properties [Hash] Additional properties to set on the contact
+  # @return [Hash] Created contact data
+  def create_contact(email, additional_properties = {})
+    with_rate_limiting(:default) do
+      properties = {
+        "email" => email,
+        "hs_object_source" => "ENRICHMENT"
+      }.merge(additional_properties)
+
+      contact_input = {
+        properties: properties
+      }
+
+      response = @client.crm.contacts.basic_api.create(
+        simple_public_object_input: contact_input
+      )
+
+      response.respond_to?(:to_hash) ? response.to_hash : response
+    end
+  end
+
   # Helper method to handle HubSpot's 10k search result limit by restarting searches
   # when approaching the limit using the last modified date
   #
