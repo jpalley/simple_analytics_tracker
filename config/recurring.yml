@@ -11,7 +11,7 @@
 production:
   facebook_sync:
     class: FacebookSyncJob
-    schedule: every 60 minutes
+    schedule: every 30 minutes
   facebook_audience_sync:
     class: FacebookAudienceSyncJob
     schedule: every 60 minutes
@@ -26,7 +26,7 @@ production:
     schedule: every day at 2am
   hubspot_sync:
     class: HubspotSyncJob
-    schedule: every 30 days
+    schedule: every 30 minutes
   hubspot_bigquery_sync:
     class: HubspotBigquerySyncJob
     schedule: every 6 hours
