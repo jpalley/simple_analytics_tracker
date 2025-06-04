@@ -31,6 +31,7 @@ env:
     - HUBSPOT_ACCESS_TOKEN
     - SENDGRID_API_KEY
     - FACEBOOK_TOKEN
+    - FACEBOOK_AD_ACCOUNT_ID
 
 
     # Set number of processes dedicated to Solid Queue (default: 1)

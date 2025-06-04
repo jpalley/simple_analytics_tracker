@@ -1,0 +1,88 @@
+<% content_for :title, "Facebook Audience Syncs" %>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h1 class="mb-0">Facebook Audience Syncs</h1>
+    <%= link_to "New Facebook Audience Sync", new_facebook_audience_sync_path, class: "btn btn-primary" %>
+  </div>
+  
+  <div class="card-body">
+    <% if @facebook_audience_syncs.any? %>
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Audience Name</th>
+              <th>Table Name</th>
+              <th>Audience Size</th>
+              <th>Total Processed</th>
+              <th>Last Sync</th>
+              <th>Settings</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @facebook_audience_syncs.each do |sync| %>
+              <tr>
+                <td>
+                  <% if sync.status == 'completed' %>
+                    <span class="badge bg-success">Completed</span>
+                  <% elsif sync.status == 'error' %>
+                    <span class="badge bg-danger">Error</span>
+                  <% elsif sync.status == 'processing' %>
+                    <span class="badge bg-warning text-dark">Processing</span>
+                  <% else %>
+                    <span class="badge bg-secondary"><%= sync.status %></span>
+                  <% end %>
+                </td>
+                <td>
+                  <strong><%= sync.audience_name %></strong>
+                  <% if sync.facebook_audience_id.present? %>
+                    <br><small class="text-muted">ID: <%= sync.facebook_audience_id %></small>
+                  <% end %>
+                </td>
+                <td><%= sync.table_name %></td>
+                <td><%= number_with_delimiter(sync.synced_users_count) %> users</td>
+                <td><%= number_with_delimiter(sync.number_of_records) %></td>
+                <td>
+                  <% if sync.latest_sync %>
+                    <%= sync.latest_sync.created_at.strftime('%Y-%m-%d %H:%M') %>
+                    <% if sync.latest_sync.error_message.present? %>
+                      <br><small class="text-danger">Error: <%= truncate(sync.latest_sync.error_message, length: 50) %></small>
+                    <% end %>
+                  <% else %>
+                    <span class="text-muted">Never</span>
+                  <% end %>
+                </td>
+                <td>
+                  <span class="badge <%= sync.enabled? ? 'bg-success' : 'bg-secondary' %>">
+                    <%= sync.enabled? ? 'Enabled' : 'Disabled' %>
+                  </span>
+                  <% if sync.test_mode? %>
+                    <span class="badge bg-warning text-dark">Test Mode</span>
+                  <% end %>
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <%= link_to "Show", sync, class: "btn btn-outline-primary" %>
+                    <%= link_to "Edit", edit_facebook_audience_sync_path(sync), class: "btn btn-outline-secondary" %>
+                    <%= link_to "Delete", sync, method: :delete, 
+                        confirm: "Are you sure?", 
+                        class: "btn btn-outline-danger" %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="alert alert-info">
+        <h5>No Facebook Audience Syncs configured</h5>
+        <p>Create your first audience sync to start syncing BigQuery table data to Facebook Custom Audiences.</p>
+        <%= link_to "Create Facebook Audience Sync", new_facebook_audience_sync_path, class: "btn btn-primary" %>
+      </div>
+    <% end %>
+  </div>
+</div> 

@@ -53,6 +53,41 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_02_012445) do
     t.index ["uuid"], name: "index_events_on_uuid"
   end
 
+  create_table "facebook_audience_sync_histories", force: :cascade do |t|
+    t.integer "records_synced", default: 0
+    t.text "error_message"
+    t.bigint "facebook_audience_sync_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["facebook_audience_sync_id"], name: "idx_on_facebook_audience_sync_id_7a5c32f584"
+  end
+
+  create_table "facebook_audience_sync_users", force: :cascade do |t|
+    t.bigint "facebook_audience_sync_id", null: false
+    t.string "email_hash"
+    t.string "phone_hash"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "hubspot_contact_id"
+    t.index ["facebook_audience_sync_id", "hubspot_contact_id"], name: "index_fb_audience_sync_users_hubspot_unique", unique: true
+    t.index ["facebook_audience_sync_id"], name: "idx_on_facebook_audience_sync_id_37c70ecead"
+    t.index ["hubspot_contact_id"], name: "index_facebook_audience_sync_users_on_hubspot_contact_id"
+  end
+
+  create_table "facebook_audience_syncs", force: :cascade do |t|
+    t.string "table_name", null: false
+    t.string "audience_name", null: false
+    t.string "facebook_audience_id"
+    t.string "last_counter", default: "0"
+    t.boolean "enabled", default: true
+    t.boolean "test_mode", default: false
+    t.text "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["enabled"], name: "index_facebook_audience_syncs_on_enabled"
+    t.index ["table_name"], name: "index_facebook_audience_syncs_on_table_name"
+  end
+
   create_table "facebook_sync_histories", force: :cascade do |t|
     t.integer "conversions"
     t.bigint "facebook_sync_id"
@@ -122,4 +157,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_02_012445) do
   end
 
   add_foreign_key "events", "people", column: "uuid", primary_key: "uuid"
+  add_foreign_key "facebook_audience_sync_histories", "facebook_audience_syncs"
+  add_foreign_key "facebook_audience_sync_users", "facebook_audience_syncs"
 end

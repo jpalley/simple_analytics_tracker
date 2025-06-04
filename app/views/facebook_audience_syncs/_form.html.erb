@@ -1,0 +1,90 @@
+<%= form_with(model: facebook_audience_sync) do |form| %>
+  <% if facebook_audience_sync.errors.any? %>
+    <div class="alert alert-danger">
+      <h4><%= pluralize(facebook_audience_sync.errors.count, "error") %> prohibited this facebook audience sync from being saved:</h4>
+      <ul>
+        <% facebook_audience_sync.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= form.label :enabled, class: "form-label" %>
+      <div class="form-check form-switch">
+        <%= form.check_box :enabled, class: "form-check-input" %>
+        <label class="form-check-label" for="facebook_audience_sync_enabled">
+          Enable this audience sync
+        </label>
+      </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+      <%= form.label :test_mode, class: "form-label" %>
+      <div class="form-check form-switch">
+        <%= form.check_box :test_mode, class: "form-check-input" %>
+        <label class="form-check-label" for="facebook_audience_sync_test_mode">
+          Test mode (log actions without syncing)
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <%= form.label :audience_name, class: "form-label" %>
+      <%= form.text_field :audience_name, class: "form-control", 
+          placeholder: "e.g., High Value Customers", 
+          required: true %>
+      <div class="form-text">
+        This will be the name of the Custom Audience in Facebook Ads Manager
+      </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+      <%= form.label :table_name, "BigQuery Table", class: "form-label" %>
+      <% if @available_tables&.any? %>
+        <%= form.select :table_name, 
+            options_for_select(@available_tables.map { |table| [table[:name], table[:id]] }, facebook_audience_sync.table_name),
+            { prompt: "Select a BigQuery table..." },
+            { class: "form-select", required: true } %>
+        <div class="form-text">
+          Select the BigQuery table containing email and phone data
+        </div>
+      <% else %>
+        <%= form.text_field :table_name, class: "form-control", 
+            placeholder: "e.g., your_dataset.customer_table", 
+            required: true %>
+        <div class="form-text">
+          Enter the full table name (dataset.table) containing email and phone data
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :description, class: "form-label" %>
+    <%= form.text_area :description, class: "form-control", rows: 3,
+        placeholder: "Optional description for this audience sync..." %>
+    <div class="form-text">
+      This description will be visible in Facebook Ads Manager
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <h6>Requirements:</h6>
+    <ul class="mb-0">
+      <li>Your BigQuery table must have a <code>hubspot_contact_id</code> column</li>
+      <li>Your BigQuery table must have <code>email</code> and/or <code>phone</code> columns</li>
+      <li>Users are identified by their HubSpot contact ID for reliable tracking</li>
+      <li>Email addresses will be normalized and hashed before sending to Facebook</li>
+      <li>Phone numbers will be cleaned and formatted automatically</li>
+    </ul>
+  </div>
+
+  <div class="mb-3">
+    <%= form.submit class: "btn btn-primary" %>
+  </div>
+<% end %> 

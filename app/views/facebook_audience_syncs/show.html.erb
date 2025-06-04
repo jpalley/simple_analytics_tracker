@@ -1,0 +1,139 @@
+<% content_for :title, "Facebook Audience Sync - #{@facebook_audience_sync.audience_name}" %>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h1 class="mb-0"><%= @facebook_audience_sync.audience_name %></h1>
+    <div class="btn-group">
+      <%= link_to "Edit", edit_facebook_audience_sync_path(@facebook_audience_sync), class: "btn btn-outline-primary" %>
+      <%= link_to "Delete", @facebook_audience_sync, method: :delete, 
+          confirm: "Are you sure?", class: "btn btn-outline-danger" %>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <strong>Status:</strong>
+          <% if @facebook_audience_sync.status == 'completed' %>
+            <span class="badge bg-success">Completed</span>
+          <% elsif @facebook_audience_sync.status == 'error' %>
+            <span class="badge bg-danger">Error</span>
+          <% elsif @facebook_audience_sync.status == 'processing' %>
+            <span class="badge bg-warning text-dark">Processing</span>
+          <% else %>
+            <span class="badge bg-secondary"><%= @facebook_audience_sync.status %></span>
+          <% end %>
+        </div>
+        
+        <div class="mb-3">
+          <strong>Created at:</strong>
+          <%= @facebook_audience_sync.created_at.strftime('%Y-%m-%d %H:%M:%S') %>
+        </div>
+        
+        <div class="mb-3">
+          <strong>Updated at:</strong>
+          <%= @facebook_audience_sync.updated_at.strftime('%Y-%m-%d %H:%M:%S') %>
+        </div>
+        
+        <div class="mb-3">
+          <strong>BigQuery Table:</strong>
+          <%= @facebook_audience_sync.table_name %>
+        </div>
+
+        <div class="mb-3">
+          <strong>Total Records Synced:</strong>
+          <%= number_with_delimiter(@facebook_audience_sync.number_of_records) %>
+        </div>
+
+        <div class="mb-3">
+          <strong>Current Audience Size:</strong>
+          <%= number_with_delimiter(@facebook_audience_sync.synced_users_count) %> users
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="mb-3">
+          <strong>Audience Name:</strong>
+          <%= @facebook_audience_sync.audience_name %>
+        </div>
+        
+        <% if @facebook_audience_sync.facebook_audience_id.present? %>
+          <div class="mb-3">
+            <strong>Facebook Audience ID:</strong>
+            <%= @facebook_audience_sync.facebook_audience_id %>
+          </div>
+        <% end %>
+        
+        <% if @facebook_audience_sync.description.present? %>
+          <div class="mb-3">
+            <strong>Description:</strong>
+            <%= @facebook_audience_sync.description %>
+          </div>
+        <% end %>
+        
+        <div class="mb-3">
+          <strong>Settings:</strong>
+          <div class="mt-1">
+            <span class="badge <%= @facebook_audience_sync.enabled? ? 'bg-success' : 'bg-secondary' %>">
+              <%= @facebook_audience_sync.enabled? ? 'Enabled' : 'Disabled' %>
+            </span>
+            
+            <span class="badge <%= @facebook_audience_sync.test_mode? ? 'bg-warning text-dark' : 'bg-secondary' %>">
+              <%= @facebook_audience_sync.test_mode? ? 'Test Mode' : 'Production Mode' %>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% if @facebook_audience_sync.facebook_audience_sync_histories.any? %>
+      <hr>
+      <h4>Sync History</h4>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Records Processed</th>
+              <th>Status</th>
+              <th>Error Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @facebook_audience_sync.facebook_audience_sync_histories.order(created_at: :desc).limit(10).each do |history| %>
+              <tr>
+                <td><%= history.created_at.strftime('%Y-%m-%d %H:%M:%S') %></td>
+                <td><%= number_with_delimiter(history.records_synced) %></td>
+                <td>
+                  <% if history.error_message.present? %>
+                    <span class="badge bg-danger">Error</span>
+                  <% else %>
+                    <span class="badge bg-success">Success</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if history.error_message.present? %>
+                    <small class="text-danger"><%= truncate(history.error_message, length: 100) %></small>
+                  <% else %>
+                    <span class="text-muted">-</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <hr>
+      <div class="alert alert-info">
+        <h5>No sync history yet</h5>
+        <p>This audience sync hasn't run yet. It will run automatically according to the configured schedule.</p>
+      </div>
+    <% end %>
+
+    <div class="mt-4">
+      <%= link_to "Back to Facebook Audience Syncs", facebook_audience_syncs_path, class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+</div> 

@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   resources :facebook_syncs
+  resources :facebook_audience_syncs
   resources :error_logs do
     collection do
       delete :destroy_all

@@ -12,6 +12,9 @@ production:
   facebook_sync:
     class: FacebookSyncJob
     schedule: every 60 minutes
+  facebook_audience_sync:
+    class: FacebookAudienceSyncJob
+    schedule: every 60 minutes
   hourly_stat:
     class: HourlyStatJob
     schedule: every hour
