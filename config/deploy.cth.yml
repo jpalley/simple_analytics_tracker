@@ -23,6 +23,7 @@ env:
     SENDGRID_FROM_EMAIL: hello@clevertinyhomes.com
     FACEBOOK_PIXEL_ID: 651217262831156
     DB_HOST: simple-analytics-database
+    FACEBOOK_AD_ACCOUNT_ID: 1767692873610469
   secret:
     - SECRET_KEY_BASE
     - POSTGRES_PASSWORD
@@ -31,7 +32,6 @@ env:
     - HUBSPOT_ACCESS_TOKEN
     - SENDGRID_API_KEY
     - FACEBOOK_TOKEN
-    - FACEBOOK_AD_ACCOUNT_ID
 
 
     # Set number of processes dedicated to Solid Queue (default: 1)
