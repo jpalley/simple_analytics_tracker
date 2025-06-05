@@ -144,10 +144,10 @@ class FacebookAudienceSyncJob < ApplicationJob
 
       # Prepare Facebook data
       facebook_data = {}
-      facebook_data["EMAIL"] = [ Digest::SHA256.hexdigest(email.downcase) ] if email.present?
+      facebook_data["EMAIL"] = Digest::SHA256.hexdigest(email.downcase) if email.present?
       if phone.present?
         cleaned_phone = clean_phone_number(phone)
-        facebook_data["PHONE"] = [ Digest::SHA256.hexdigest(cleaned_phone) ] if cleaned_phone.present?
+        facebook_data["PHONE"] = Digest::SHA256.hexdigest(cleaned_phone) if cleaned_phone.present?
       end
 
       # Only include if we have valid Facebook data
@@ -219,25 +219,73 @@ class FacebookAudienceSyncJob < ApplicationJob
         total_processed += batch.size
       else
         begin
-          params = {
-            "payload" => {
-              "schema" => [ "EMAIL", "PHONE" ],
-              "data" => batch
-            }
-          }
+          # Separate users by data type for different schemas
+          users_with_both = []
+          users_with_email_only = []
+          users_with_phone_only = []
 
-          case operation
-          when :add
-            result = audience.users.create(params)
-          when :remove
-            result = audience.users.delete(params)
+          batch.each do |user_data|
+            has_email = user_data["EMAIL"].present?
+            has_phone = user_data["PHONE"].present?
+
+            if has_email && has_phone
+              users_with_both << [ user_data["EMAIL"], user_data["PHONE"] ]
+            elsif has_email
+              users_with_email_only << [ user_data["EMAIL"] ]
+            elsif has_phone
+              users_with_phone_only << [ user_data["PHONE"] ]
+            end
           end
 
-          total_processed += batch.size
-          Rails.logger.info "#{operation.to_s.capitalize}ed batch of #{batch.size} users to/from audience #{audience.id}"
+          # Send batches with appropriate schemas
+          batches_to_send = []
+
+          if users_with_both.any?
+            batches_to_send << {
+              schema: [ "EMAIL", "PHONE" ],
+              data: users_with_both
+            }
+          end
+
+          if users_with_email_only.any?
+            batches_to_send << {
+              schema: [ "EMAIL" ],
+              data: users_with_email_only
+            }
+          end
+
+          if users_with_phone_only.any?
+            batches_to_send << {
+              schema: [ "PHONE" ],
+              data: users_with_phone_only
+            }
+          end
+
+          # Process each batch type
+          total_sub_batch_users = 0
+          batches_to_send.each do |batch_info|
+            params = {
+              "payload" => {
+                "schema" => batch_info[:schema],
+                "data" => batch_info[:data]
+              }
+            }
+
+            case operation
+            when :add
+              result = audience.users.create(params)
+            when :remove
+              result = audience.users.delete(params)
+            end
+
+            total_sub_batch_users += batch_info[:data].size
+          end
+
+          total_processed += total_sub_batch_users
+          Rails.logger.info "#{operation.to_s.capitalize}ed batch of #{total_sub_batch_users} users to/from audience #{audience.id}"
 
           # Add small delay between batches to avoid rate limits
-          sleep(1) if user_data_array.size > batch_size
+          sleep(1) if user_data_array.length > batch_size
         rescue => e
           Rails.logger.error "Error #{operation}ing batch to/from Facebook: #{e.message}"
           raise e
