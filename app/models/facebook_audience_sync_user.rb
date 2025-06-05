@@ -14,7 +14,9 @@ class FacebookAudienceSyncUser < ApplicationRecord
       hubspot_contact_id: hubspot_contact_id.to_s
     ) do |record|
       record.email_hash = email.present? ? Digest::SHA256.hexdigest(email.to_s.strip.downcase) : nil
-      record.phone_hash = phone.present? ? Digest::SHA256.hexdigest(clean_phone_number(phone.to_s)) : nil
+
+      cleaned_phone = phone.present? ? clean_phone_number(phone.to_s) : nil
+      record.phone_hash = cleaned_phone.present? ? Digest::SHA256.hexdigest(cleaned_phone) : nil
     end
   end
 
