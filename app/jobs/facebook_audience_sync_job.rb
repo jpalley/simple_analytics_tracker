@@ -228,9 +228,9 @@ class FacebookAudienceSyncJob < ApplicationJob
 
           case operation
           when :add
-            result = audience.create_user(params)
+            result = audience.users.create(params)
           when :remove
-            result = audience.delete_user(params)
+            result = audience.users.delete(params)
           end
 
           total_processed += batch.size
