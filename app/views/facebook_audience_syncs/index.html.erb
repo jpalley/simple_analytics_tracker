@@ -67,8 +67,7 @@
                   <div class="btn-group btn-group-sm">
                     <%= link_to "Show", sync, class: "btn btn-outline-primary" %>
                     <%= link_to "Edit", edit_facebook_audience_sync_path(sync), class: "btn btn-outline-secondary" %>
-                    <%= link_to "Delete", sync, method: :delete, 
-                        confirm: "Are you sure?", 
+                    <%= link_to "Delete", sync, data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, 
                         class: "btn btn-outline-danger" %>
                   </div>
                 </td>

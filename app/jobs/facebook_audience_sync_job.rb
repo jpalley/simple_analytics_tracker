@@ -275,7 +275,7 @@ class FacebookAudienceSyncJob < ApplicationJob
             when :add
               result = audience.users.create(params)
             when :remove
-              result = audience.users.delete(params)
+              result = audience.users.destroy(params)
             end
 
             total_sub_batch_users += batch_info[:data].size

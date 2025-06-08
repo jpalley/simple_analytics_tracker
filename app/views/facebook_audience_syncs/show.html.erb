@@ -5,8 +5,7 @@
     <h1 class="mb-0"><%= @facebook_audience_sync.audience_name %></h1>
     <div class="btn-group">
       <%= link_to "Edit", edit_facebook_audience_sync_path(@facebook_audience_sync), class: "btn btn-outline-primary" %>
-      <%= link_to "Delete", @facebook_audience_sync, method: :delete, 
-          confirm: "Are you sure?", class: "btn btn-outline-danger" %>
+      <%= link_to "Delete", @facebook_audience_sync, data: { turbo_method: :delete, turbo_confirm: "Are you sure?" }, class: "btn btn-outline-danger" %>
     </div>
   </div>
   
